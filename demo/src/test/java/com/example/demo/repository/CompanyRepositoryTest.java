@@ -1,11 +1,10 @@
 package com.example.demo.repository;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import java.util.List;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,13 +24,12 @@ class CompanyRepositoryTest {
 
     private Company scb;
     private Company agoda;
-    private Company ptt;
 
     @BeforeEach
     void setUp() {
         scb = companyRepository.save(new Company("SCB TechX", CompanyStatus.OPEN));
         agoda = companyRepository.save(new Company("Agoda Services", CompanyStatus.OPEN));
-        ptt = companyRepository.save(new Company("PTT Digital", CompanyStatus.CLOSED));
+        companyRepository.save(new Company("PTT Digital", CompanyStatus.CLOSED));
     }
 
     @Test
