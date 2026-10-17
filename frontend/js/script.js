@@ -9,6 +9,10 @@ const $ = (selector, root = document) =>
 
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
+/* ---------- API สำหรับพัฒนาในเครื่อง ---------- */
+const ELIGIBILITY_API =
+    'http://localhost:8080/api/eligibility/check';
+
 /* ---------- สถานะของระบบ ---------- */
 const KEY = 'coop-state';
 
@@ -36,13 +40,36 @@ const DEF = {
     }
 };
 
-const fresh = () => JSON.parse(JSON.stringify(DEF));
+const fresh = () =>
+    JSON.parse(JSON.stringify(DEF));
 
 function load() {
     try {
+        const defaults = fresh();
+        const stored =
+            JSON.parse(sessionStorage.getItem(KEY) || '{}');
+
         return {
-            ...fresh(),
-            ...JSON.parse(sessionStorage.getItem(KEY) || '{}')
+            ...defaults,
+            ...stored,
+
+            form: {
+                ...defaults.form,
+                ...(stored.form || {})
+            },
+
+            val: stored.val || {},
+            alt: stored.alt || {},
+
+            ack: Array.isArray(stored.ack) &&
+                stored.ack.length === 3 ?
+                stored.ack :
+                defaults.ack,
+
+            prio: {
+                ...defaults.prio,
+                ...(stored.prio || {})
+            }
         };
     } catch (error) {
         return fresh();
@@ -69,7 +96,10 @@ function setStepper(cur, errAt = 0, allDone = false) {
         if (errAt === step) {
             className = 'err';
             label = '✕';
-        } else if (step < cur || (step === cur && allDone)) {
+        } else if (
+            step < cur ||
+            (step === cur && allDone)
+        ) {
             className = 'done';
             label = '✓';
         } else if (step === cur) {
@@ -77,13 +107,22 @@ function setStepper(cur, errAt = 0, allDone = false) {
         }
 
         element.className = 'st ' + className;
-        $('.dot', element).textContent = label;
+
+        const dot = $('.dot', element);
+
+        if (dot) {
+            dot.textContent = label;
+        }
     });
 }
 
 const showView = (ids, currentId) => {
     ids.forEach(id => {
-        $('#' + id).hidden = id !== currentId;
+        const element = $('#' + id);
+
+        if (element) {
+            element.hidden = id !== currentId;
+        }
     });
 };
 
@@ -96,7 +135,9 @@ const NEED = {
 };
 
 const HOME = () => {
-    const index = Math.min(Math.max(S.unlocked, 1), 3) - 1;
+    const index =
+        Math.min(Math.max(S.unlocked, 1), 3) - 1;
+
     return ['check', 'submit', 'ranking'][index] + '.html';
 };
 
@@ -134,14 +175,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return location.replace('check.html');
     }
 
-    initShell();
-
     const initializers = {
         check: initCheck,
         submit: initSubmit,
         ranking: initRanking
     };
 
+    if (!initializers[page]) {
+        return;
+    }
+
+    initShell();
     initializers[page]();
 });
 
@@ -235,12 +279,15 @@ const STAT_OPTS = [
 ];
 
 /* ---------- ตัวช่วยอ่านข้อมูลรายวิชา ---------- */
-const K = (section, index) => S.cur + section + index;
+const K = (section, index) =>
+    S.cur + section + index;
 
 const valOf = (section, index, defaultValue) => {
     const key = K(section, index);
 
-    return key in S.val ? S.val[key] : defaultValue;
+    return key in S.val ?
+        S.val[key] :
+        defaultValue;
 };
 
 const codeOf = (section, item, index) => {
@@ -265,7 +312,9 @@ function rowHtml(section, item, index, list, defaultValue) {
             ${item.map((code, choiceIndex) => `
                <option
                   value="${choiceIndex}"
-                  ${(S.alt[key] || 0) === choiceIndex ? 'selected' : ''}>
+                  ${(S.alt[key] || 0) === choiceIndex
+                     ? 'selected'
+                     : ''}>
                   ${code}
                </option>
             `).join('')}
@@ -294,20 +343,21 @@ function rowHtml(section, item, index, list, defaultValue) {
    `;
 }
 
-/* ---------- ประเมินคุณสมบัติ ---------- */
+/*
+ * ฟังก์ชันประเมินเดิม เก็บไว้สำหรับโค้ดหรือ Test เดิม
+ * การกดตรวจสอบบนหน้าเว็บจะใช้ผลจาก API เท่านั้น
+ */
 function evaluate() {
    const curriculum = CUR[S.cur];
    const gpa = Number(S.form.gpax);
    const results = [];
 
-   // สาขาวิชาตามข้อมูลต้นแบบ
    results.push({
       ok: 1,
       t: 'สาขาวิชา',
       d: 'นักศึกษาสาขาวิทยาการคอมพิวเตอร์ คณะวิทยาศาสตร์ฯ ม.ธรรมศาสตร์'
    });
 
-   // แต่ละวิชาแกนต้องได้ C+ ขึ้นไป
    curriculum.core.forEach((item, index) => {
       const code = codeOf('g', item, index);
       const grade = valOf('g', index, 'B');
@@ -335,7 +385,6 @@ function evaluate() {
       }
    });
 
-   // รายวิชาที่กำลังศึกษา หรือเคยศึกษา
    const missingCourses = [];
    const courseDetails = [];
 
@@ -359,7 +408,6 @@ function evaluate() {
          : ''
    });
 
-   // GPA ต้องไม่ต่ำกว่า 2.75
    const validGpa =
       Number.isFinite(gpa) && gpa >= 0 && gpa <= 4;
 
@@ -378,11 +426,119 @@ function evaluate() {
             : 'ไม่ถูกต้อง'
    });
 
-   // ข้อความเตือนก่อนออกปฏิบัติงาน
    results.push({
       ok: 'w',
       t: 'ต้องสอบได้วิชา ' + curriculum.must,
       d: 'ก่อนออกไปปฏิบัติงานจริง ณ สถานประกอบการ'
+   });
+
+   return results;
+}
+
+/* ---------- สร้าง Request สำหรับ API ---------- */
+function buildEligibilityRequest() {
+   const curriculum = CUR[S.cur];
+
+   if (!curriculum) {
+      throw new Error('หลักสูตรต้องเป็น 61 หรือ 66');
+   }
+
+   const grades = {};
+   const courseStatuses = {};
+
+   curriculum.core.forEach((item, index) => {
+      const course = codeOf('g', item, index);
+      grades[course] = valOf('g', index, 'B');
+   });
+
+   curriculum.now.forEach((item, index) => {
+      const course = codeOf('s', item, index);
+
+      courseStatuses[course] =
+         valOf('s', index, 'กำลังศึกษา');
+   });
+
+   return {
+      studentId: String(S.form.id ?? '').trim(),
+      curriculum: S.cur,
+      gpax: String(S.form.gpax ?? '').trim(),
+      grades,
+      courseStatuses,
+      acknowledgements: [...S.ack]
+   };
+}
+
+/* ---------- ตรวจรูปแบบ Response ---------- */
+function isEligibilityResponse(data) {
+   if (!data || typeof data !== 'object') {
+      return false;
+   }
+
+   const stringArray = value =>
+      Array.isArray(value) &&
+      value.every(item => typeof item === 'string');
+
+   return (
+      typeof data.valid === 'boolean' &&
+      (
+         data.valid
+            ? typeof data.eligible === 'boolean'
+            : data.eligible === null
+      ) &&
+      typeof data.message === 'string' &&
+      stringArray(data.errors) &&
+      stringArray(data.reasons) &&
+      stringArray(data.warnings)
+   );
+}
+
+/* ---------- แปลงผล API สำหรับแสดงบน UI ---------- */
+function convertApiResponse(data) {
+   const results = [];
+
+   if (!data.valid) {
+      const errors = data.errors.length
+         ? data.errors
+         : [data.message];
+
+      errors.forEach(error => {
+         results.push({
+            ok: 0,
+            t: 'ข้อมูลไม่ถูกต้อง',
+            d: error
+         });
+      });
+
+      return results;
+   }
+
+   if (data.eligible) {
+      results.push({
+         ok: 1,
+         t: 'ผลการตรวจสอบ',
+         d: data.message
+      });
+   } else {
+      // แสดงเฉพาะเหตุผล เพื่อไม่นับรายการไม่ผ่านซ้ำ
+      const reasons = data.reasons.length
+         ? data.reasons
+         : [data.message];
+
+      reasons.forEach(reason => {
+         results.push({
+            ok: 0,
+            t: 'ไม่ผ่านคุณสมบัติ',
+            d: reason
+         });
+      });
+   }
+
+   data.warnings.forEach(warning => {
+      results.push({
+         ok: 'w',
+         t: 'คำเตือน',
+         d: warning
+      });
    });
 
    return results;
@@ -400,14 +556,21 @@ function initCheck() {
    const show = id => showView(views, id);
 
    let res = [];
-   let ok = true;
+   let ok = false;
+   let busy = false;
+   let resultMessage = '';
+
+   if (!Object.prototype.hasOwnProperty.call(CUR, S.cur)) {
+      S.cur = '61';
+   }
 
    $('#f_id').value = S.form.id;
    $('#f_gpax').value = S.form.gpax;
    $('#f_prog').value = S.cur;
 
    const sync = () => {
-      $('#btnCheck').disabled = !S.ack.every(Boolean);
+      $('#btnCheck').disabled =
+         busy || !S.ack.every(value => value === true);
    };
 
    function draw() {
@@ -421,7 +584,13 @@ function initCheck() {
 
       $('#nowRows').innerHTML = curriculum.now
          .map((item, index) =>
-            rowHtml('s', item, index, STAT_OPTS, 'กำลังศึกษา')
+            rowHtml(
+               's',
+               item,
+               index,
+               STAT_OPTS,
+               'กำลังศึกษา'
+            )
          )
          .join('');
 
@@ -436,9 +605,9 @@ function initCheck() {
 
    draw();
 
-   /* เก็บค่าจากช่องกรอกข้อมูล */
    const form = $('#vForm');
 
+   /* เก็บค่าจากช่องกรอกข้อมูล */
    form.addEventListener('input', event => {
       if (event.target.id === 'f_id') {
          S.form.id = event.target.value;
@@ -471,35 +640,53 @@ function initCheck() {
       save();
    });
 
-   /* เพิ่ม: ตรวจข้อมูลก่อนประเมินคุณสมบัติ */
+   /* ตรวจข้อมูลเบื้องต้นให้ตรงกับ Backend */
    function validateInput() {
-      const id = S.form.id.trim();
-      const gpax = S.form.gpax.trim();
+      const id = String(S.form.id ?? '').trim();
+      const gpax = String(S.form.gpax ?? '').trim();
 
       if (!id || !gpax) {
          return 'กรุณากรอกข้อมูลให้ครบถ้วน';
       }
 
-      // ตรวจทั้งข้อความ ไม่ยอมรับค่าอย่าง 3.10abc
-      if (!/^\d+(\.\d+)?$/.test(gpax)) {
-         return 'GPA ต้องเป็นตัวเลข เช่น 2.75 หรือ 3.10';
+      if (!/^\d{10}$/.test(id)) {
+         return 'รหัสนักศึกษาต้องเป็นตัวเลข 10 หลัก';
       }
 
-      const gpaValue = Number(gpax);
+      if (
+         !/^(?:[0-3](?:\.\d{1,2})?|4(?:\.0{1,2})?)$/.test(gpax)
+      ) {
+         return 'GPA ต้องเป็นตัวเลข 0.00–4.00 และมีทศนิยมไม่เกิน 2 ตำแหน่ง';
+      }
 
       if (
-         !Number.isFinite(gpaValue) ||
-         gpaValue < 0 ||
-         gpaValue > 4
+         !Object.prototype.hasOwnProperty.call(CUR, S.cur)
       ) {
-         return 'GPA ต้องอยู่ระหว่าง 0.00 ถึง 4.00';
+         return 'หลักสูตรต้องเป็น 61 หรือ 66';
+      }
+
+      if (!S.ack.every(value => value === true)) {
+         return 'กรุณายืนยันเงื่อนไขให้ครบทั้ง 3 ข้อ';
       }
 
       return '';
    }
 
-   /* เริ่มตรวจสอบ */
-   function run() {
+   /* เรียก API จริง */
+   async function run(event) {
+      if (event) {
+         event.preventDefault();
+      }
+
+      if (busy) {
+         return;
+      }
+
+      // อ่านค่าปัจจุบันจากหน้าฟอร์ม
+      S.form.id = $('#f_id').value;
+      S.form.gpax = $('#f_gpax').value;
+      S.cur = $('#f_prog').value;
+
       const error = validateInput();
       const errorBox = $('#formError');
 
@@ -507,72 +694,182 @@ function initCheck() {
       errorBox.hidden = error === '';
 
       if (error !== '') {
+         setStepper(1);
+         show('vForm');
          return;
       }
 
-      // ใช้ค่าจริงในการประเมิน ไม่ปัดเศษก่อนเทียบเกณฑ์
-      // เช่น 2.749 ต้องไม่ถูกปัดเป็น 2.75 แล้วผ่าน
-      res = evaluate();
-      ok = res.every(result => result.ok !== 0);
-
+      busy = true;
+      ok = false;
+      sync();
       save();
 
       setStepper(2);
       show('vLoad');
 
-      setTimeout(result, DELAY);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(
+         () => controller.abort(),
+         15000
+      );
+
+      try {
+         const response = await fetch(
+            ELIGIBILITY_API,
+            {
+               method: 'POST',
+
+               headers: {
+                  'Content-Type': 'application/json'
+               },
+
+               body: JSON.stringify(
+                  buildEligibilityRequest()
+               ),
+
+               signal: controller.signal
+            }
+         );
+
+         if (
+            response.status !== 200 &&
+            response.status !== 400
+         ) {
+            throw new Error(
+               'เซิร์ฟเวอร์ตอบกลับ HTTP ' +
+               response.status +
+               ' กรุณาลองใหม่หรือตรวจสอบ Backend'
+            );
+         }
+
+         const data = await response.json();
+
+         if (!isEligibilityResponse(data)) {
+            throw new Error(
+               'รูปแบบข้อมูลตอบกลับจาก API ไม่ถูกต้อง'
+            );
+         }
+
+         if (
+            (response.status === 200 && !data.valid) ||
+            (response.status === 400 && data.valid)
+         ) {
+            throw new Error(
+               'HTTP Status ไม่ตรงกับผลการตรวจข้อมูล'
+            );
+         }
+
+         res = convertApiResponse(data);
+
+         ok =
+            response.status === 200 &&
+            data.valid === true &&
+            data.eligible === true;
+
+         resultMessage = data.message;
+      } catch (error) {
+         ok = false;
+         resultMessage = 'ไม่สามารถตรวจสอบคุณสมบัติได้';
+
+         let detail =
+            'ไม่สามารถเชื่อมต่อ API ได้ กรุณาตรวจสอบ Backend ที่ localhost:8080';
+
+         if (error.name === 'AbortError') {
+            detail =
+               'ระบบตอบกลับช้าเกิน 15 วินาที กรุณาลองใหม่';
+         } else if (error instanceof SyntaxError) {
+            detail =
+               'API ไม่ได้ส่งข้อมูล JSON ที่ถูกต้อง';
+         } else if (
+            error instanceof Error &&
+            !(error instanceof TypeError)
+         ) {
+            detail = error.message;
+         }
+
+         res = [
+            {
+               ok: 0,
+               t: 'เกิดข้อผิดพลาดในการตรวจสอบ',
+               d: detail
+            }
+         ];
+      } finally {
+         clearTimeout(timeoutId);
+         busy = false;
+         sync();
+      }
+
+      result();
    }
 
-   /* แสดงผล */
+   /* แสดงผลโดยใช้ textContent กับข้อมูลจาก API */
    function result() {
-      const failedCount = res.filter(
-         item => item.ok === 0
-      ).length;
-
       setStepper(3, ok ? 0 : 2);
       show('vResult');
 
       const alert = $('#rAlert');
 
-      alert.className = 'alert ' + (ok ? 'ok' : 'bad');
+      alert.className =
+         'alert ' + (ok ? 'ok' : 'bad');
 
-      alert.textContent = ok
-         ? 'คุณมีคุณสมบัติครบถ้วนตามเกณฑ์'
-         : `ไม่ผ่านคุณสมบัติ ${failedCount} รายการ กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง`;
+      alert.textContent = resultMessage;
 
-      $('#rList').innerHTML = res.map(item => {
-         const resultClass = item.ok === 1
-            ? 'ok'
-            : item.ok === 0
-               ? 'bad'
-               : 'warn';
+      const list = $('#rList');
+      list.replaceChildren();
 
-         const symbol = item.ok === 1
-            ? '✓'
-            : item.ok === 0
-               ? '✕'
-               : '!';
+      res.forEach(item => {
+         const resultClass =
+            item.ok === 1
+               ? 'ok'
+               : item.ok === 0
+                  ? 'bad'
+                  : 'warn';
 
-         return `
-            <div class="res ${resultClass}">
-               <i class="dot">${symbol}</i>
+         const symbol =
+            item.ok === 1
+               ? '✓'
+               : item.ok === 0
+                  ? '✕'
+                  : '!';
 
-               <p>
-                  <b>${item.t}</b>
-                  <small>${item.d}</small>
-               </p>
+         const row = document.createElement('div');
+         row.className = 'res ' + resultClass;
 
-               ${item.v ? `<em>${item.v}</em>` : ''}
-            </div>
-         `;
-      }).join('');
+         const dot = document.createElement('i');
+         dot.className = 'dot';
+         dot.textContent = symbol;
+
+         const paragraph = document.createElement('p');
+
+         const title = document.createElement('b');
+         title.textContent = item.t;
+
+         const detail = document.createElement('small');
+         detail.textContent = item.d;
+
+         paragraph.append(title, detail);
+         row.append(dot, paragraph);
+
+         if (item.v) {
+            const value = document.createElement('em');
+            value.textContent = item.v;
+            row.append(value);
+         }
+
+         list.append(row);
+      });
 
       $('#rNext').hidden = !ok;
       $('#rRetry').hidden = ok;
       $('#rEdit').hidden = ok;
    }
 
-   const toForm = () => {
+   const toForm = event => {
+      if (event) {
+         event.preventDefault();
+      }
+
       setStepper(1);
       show('vForm');
    };
@@ -582,14 +879,28 @@ function initCheck() {
    $('#rBack').onclick = toForm;
    $('#rEdit').onclick = toForm;
 
-   $('#rNext').onclick = () => {
+   $('#rNext').onclick = event => {
+      event.preventDefault();
+
+      if (!ok) {
+         return;
+      }
+
       setStepper(3, 0, true);
       show('vDone');
    };
 
-   $('#dBack').onclick = result;
+   $('#dBack').onclick = event => {
+      event.preventDefault();
+      result();
+   };
 
-   $('#dNext').onclick = () => {
+   $('#dNext').onclick = event => {
+      if (!ok) {
+         event.preventDefault();
+         return;
+      }
+
       S.unlocked = Math.max(S.unlocked, 2);
       save();
    };
@@ -625,16 +936,21 @@ function initSubmit() {
       show('vResult');
 
       const alert = $('#sAlert');
-      alert.className = 'alert ' + (ok ? 'ok' : 'bad');
+
+      alert.className =
+         'alert ' + (ok ? 'ok' : 'bad');
 
       alert.textContent = ok
          ? 'คำร้องของคุณผ่านการตรวจสอบแล้ว'
          : 'คำร้องไม่ผ่านการตรวจสอบ 1 รายการ กรุณาแก้ไขข้อมูล';
 
       const transcript = $('#sTr');
-      transcript.className = 'res ' + (ok ? 'ok' : 'bad');
 
-      $('.dot', transcript).textContent = ok ? '✓' : '✕';
+      transcript.className =
+         'res ' + (ok ? 'ok' : 'bad');
+
+      $('.dot', transcript).textContent =
+         ok ? '✓' : '✕';
 
       $('small', transcript).textContent = ok
          ? 'ไฟล์อ่านได้และข้อมูลตรงกับระบบ'
@@ -714,7 +1030,8 @@ function initRanking() {
    });
 
    $('#btnConfirm').onclick = () => {
-      const values = Object.values(S.prio).filter(Boolean);
+      const values =
+         Object.values(S.prio).filter(Boolean);
 
       const error = !values.length
          ? 'กรุณาเลือกบริษัทอย่างน้อย 1 แห่ง'

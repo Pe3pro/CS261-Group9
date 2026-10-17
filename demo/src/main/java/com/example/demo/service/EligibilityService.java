@@ -1,9 +1,12 @@
 package com.example.demo.service;
 
+import com.example.demo.dao.EligibilityRecordDao;
 import com.example.demo.dto.EligibilityRequest;
 import com.example.demo.dto.EligibilityResponse;
+import com.example.demo.entity.EligibilityRecord;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -12,27 +15,43 @@ import java.util.Set;
 @Service
 public class EligibilityService {
 
-    private static final Map<String, Double> GRADE_POINTS = Map.of(
-        "A", 4.0,
-        "B+", 3.5,
-        "B", 3.0,
-        "C+", 2.5,
-        "C", 2.0,
-        "D+", 1.5,
-        "D", 1.0,
-        "F", 0.0
-    );
+    private final EligibilityRecordDao eligibilityRecordDao;
 
-    private static final Set<String> ALLOWED_STATUSES = Set.of(
-        "ยังไม่เคยลง",
-        "กำลังศึกษา",
-        "เคยศึกษาแล้ว"
-    );
+    public EligibilityService(
+        EligibilityRecordDao eligibilityRecordDao
+    ) {
+        this.eligibilityRecordDao = eligibilityRecordDao;
+    }
 
-    public EligibilityResponse check(EligibilityRequest request) {
+    private static final Map<String, Double> GRADE_POINTS =
+        Map.of(
+            "A", 4.0,
+            "B+", 3.5,
+            "B", 3.0,
+            "C+", 2.5,
+            "C", 2.0,
+            "D+", 1.5,
+            "D", 1.0,
+            "F", 0.0,
+            "ยังไม่เคยเรียน", -1.0
+        );
+
+    private static final Set<String> ALLOWED_STATUSES =
+        Set.of(
+            "ยังไม่เคยลง",
+            "กำลังศึกษา",
+            "เคยศึกษาแล้ว"
+        );
+
+    public EligibilityResponse check(
+        EligibilityRequest request
+    ) {
         List<String> errors = validate(request);
 
-        // ข้อมูลไม่ครบหรือผิดรูปแบบ
+        /*
+         * ถ้าข้อมูลไม่ครบหรือผิดรูปแบบ
+         * จะไม่บันทึกลงฐานข้อมูล
+         */
         if (!errors.isEmpty()) {
             return new EligibilityResponse(
                 false,
@@ -49,70 +68,114 @@ public class EligibilityService {
 
         double gpax = Double.parseDouble(request.gpax());
 
-        // ตรวจ GPA
+        /*
+         * GPA ต้องไม่ต่ำกว่า 2.75
+         */
         if (gpax < 2.75) {
-            reasons.add("GPA ต้องไม่ต่ำกว่า 2.75");
+            reasons.add(
+                "GPA ต้องไม่ต่ำกว่า 2.75"
+            );
         }
 
-        // ตรวจเกรดรายวิชา
+        /*
+         * รายวิชาต้องได้เกรด C+ ขึ้นไป
+         */
         request.grades().forEach((course, grade) -> {
             if (GRADE_POINTS.get(grade) < 2.5) {
-                reasons.add(course + " ต้องได้เกรด C+ ขึ้นไป");
-            }
-        });
-
-        // ตรวจสถานะรายวิชา
-        request.courseStatuses().forEach((course, status) -> {
-            if ("ยังไม่เคยลง".equals(status)) {
                 reasons.add(
-                    course + " ต้องกำลังศึกษา หรือเคยศึกษาแล้ว"
+                    course + " ต้องได้เกรด C+ ขึ้นไป"
                 );
             }
         });
 
-        // ตรวจ checkbox ยืนยัน
+        /*
+         * รายวิชาต้องกำลังศึกษา
+         * หรือเคยศึกษาแล้ว
+         */
+        request.courseStatuses().forEach(
+            (course, status) -> {
+                if ("ยังไม่เคยลง".equals(status)) {
+                    reasons.add(
+                        course +
+                        " ต้องกำลังศึกษา หรือเคยศึกษาแล้ว"
+                    );
+                }
+            }
+        );
+
+        /*
+         * ต้องยืนยันเงื่อนไขครบทั้ง 3 ข้อ
+         */
         boolean acknowledgedAll =
             request.acknowledgements()
-                   .stream()
-                   .allMatch(Boolean.TRUE::equals);
+                .stream()
+                .allMatch(Boolean.TRUE::equals);
 
         if (!acknowledgedAll) {
-            reasons.add("ต้องยืนยันเงื่อนไขให้ครบทั้ง 3 ข้อ");
+            reasons.add(
+                "ต้องยืนยันเงื่อนไขให้ครบทั้ง 3 ข้อ"
+            );
         }
 
-        // เพิ่มคำเตือนตามหลักสูตร
+        /*
+         * คำเตือนจะแตกต่างตามหลักสูตร
+         */
         if ("61".equals(request.curriculum())) {
             warnings.add(
-                "ต้องสอบได้วิชา คพ.302 ก่อนออกปฏิบัติงาน"
+                "ต้องสอบได้วิชา คพ.302 " +
+                "ก่อนออกปฏิบัติงาน"
             );
         } else {
             warnings.add(
-                "ต้องสอบได้วิชา คพ.301 ก่อนออกปฏิบัติงาน"
+                "ต้องสอบได้วิชา คพ.301 " +
+                "ก่อนออกปฏิบัติงาน"
             );
         }
 
         boolean eligible = reasons.isEmpty();
 
-        return new EligibilityResponse(
-            true,
-            eligible,
-            eligible
-                ? "ผ่านคุณสมบัติ"
-                : "ไม่ผ่านคุณสมบัติ",
-            List.of(),
-            reasons,
-            warnings
-        );
+        EligibilityResponse response =
+            new EligibilityResponse(
+                true,
+                eligible,
+                eligible
+                    ? "ผ่านคุณสมบัติ"
+                    : "ไม่ผ่านคุณสมบัติ",
+                List.of(),
+                reasons,
+                warnings
+            );
+
+        /*
+         * บันทึกผลที่ผ่านการตรวจรูปแบบแล้วลง DAO
+         * บันทึกทั้งกรณีผ่านและไม่ผ่านคุณสมบัติ
+         */
+        EligibilityRecord record =
+            new EligibilityRecord(
+                request.studentId(),
+                eligible,
+                response.message(),
+                LocalDateTime.now()
+            );
+
+        eligibilityRecordDao.save(record);
+
+        return response;
     }
 
     /*
-     * ตรวจว่าข้อมูลที่ API รับมาครบและมีรูปแบบถูกต้องหรือไม่
+     * ตรวจความครบถ้วนและรูปแบบของ Request
      */
-    private List<String> validate(EligibilityRequest request) {
+    private List<String> validate(
+        EligibilityRequest request
+    ) {
         List<String> errors = new ArrayList<>();
 
         if (request == null) {
-            errors.add("กรุณาส่งข้อมูลสำหรับตรวจสอบ");
+            errors.add(
+                "กรุณาส่งข้อมูลสำหรับตรวจสอบ"
+            );
+
             return errors;
         }
 
@@ -126,19 +189,29 @@ public class EligibilityService {
         return errors;
     }
 
+    /*
+     * ตรวจรหัสนักศึกษา
+     */
     private void validateStudentId(
         EligibilityRequest request,
         List<String> errors
     ) {
         if (isBlank(request.studentId())) {
-            errors.add("กรุณากรอกรหัสนักศึกษา");
-        } else if (!request.studentId().matches("\\d{10}")) {
+            errors.add(
+                "กรุณากรอกรหัสนักศึกษา"
+            );
+        } else if (
+            !request.studentId().matches("\\d{10}")
+        ) {
             errors.add(
                 "รหัสนักศึกษาต้องเป็นตัวเลข 10 หลัก"
             );
         }
     }
 
+    /*
+     * ตรวจหลักสูตร
+     */
     private void validateCurriculum(
         EligibilityRequest request,
         List<String> errors
@@ -148,10 +221,15 @@ public class EligibilityService {
             "66".equals(request.curriculum());
 
         if (!validCurriculum) {
-            errors.add("หลักสูตรต้องเป็น 61 หรือ 66");
+            errors.add(
+                "หลักสูตรต้องเป็น 61 หรือ 66"
+            );
         }
     }
 
+    /*
+     * ตรวจรูปแบบ GPA
+     */
     private void validateGpax(
         EligibilityRequest request,
         List<String> errors
@@ -163,10 +241,11 @@ public class EligibilityService {
 
         /*
          * รับค่า 0–3 พร้อมทศนิยมไม่เกิน 2 ตำแหน่ง
-         * หรือ 4, 4.0, 4.00
+         * หรือ 4, 4.0 และ 4.00
          */
         String gpaxPattern =
-            "(?:[0-3](?:\\.\\d{1,2})?|4(?:\\.0{1,2})?)";
+            "(?:[0-3](?:\\.\\d{1,2})?" +
+            "|4(?:\\.0{1,2})?)";
 
         if (!request.gpax().matches(gpaxPattern)) {
             errors.add(
@@ -176,6 +255,9 @@ public class EligibilityService {
         }
     }
 
+    /*
+     * ตรวจเกรดรายวิชา
+     */
     private void validateGrades(
         EligibilityRequest request,
         List<String> errors
@@ -187,6 +269,7 @@ public class EligibilityService {
             errors.add(
                 "กรุณาส่งผลการเรียนรายวิชาบังคับ"
             );
+
             return;
         }
 
@@ -211,16 +294,25 @@ public class EligibilityService {
             );
         }
 
-        // ตรวจรายวิชาบังคับ
+        /*
+         * ตรวจว่ามีรายวิชาบังคับครบ
+         */
         for (String course : fixedCourses) {
-            if (!request.grades().containsKey(course)) {
+            if (
+                !request.grades()
+                    .containsKey(course)
+            ) {
                 errors.add(
-                    "ไม่พบผลการเรียนวิชา " + course
+                    "ไม่พบผลการเรียนวิชา " +
+                    course
                 );
             }
         }
 
-        // ต้องมี คพ.213 หรือ คพ.216 อย่างน้อยหนึ่งวิชา
+        /*
+         * ต้องมี คพ.213 หรือ คพ.216
+         * อย่างน้อยหนึ่งวิชา
+         */
         boolean hasAlternativeCourse =
             request.grades().containsKey("คพ.213") ||
             request.grades().containsKey("คพ.216");
@@ -232,18 +324,28 @@ public class EligibilityService {
             );
         }
 
-        // ตรวจรูปแบบเกรด
-        request.grades().forEach((course, grade) -> {
-            if (!GRADE_POINTS.containsKey(grade)) {
-                errors.add(
-                    "เกรดของวิชา " +
-                    course +
-                    " ไม่ถูกต้อง"
-                );
+        /*
+         * ตรวจว่าเกรดเป็นค่าที่ระบบรองรับ
+         */
+        request.grades().forEach(
+            (course, grade) -> {
+                if (
+                    grade == null ||
+                    !GRADE_POINTS.containsKey(grade)
+                ) {
+                    errors.add(
+                        "เกรดของวิชา " +
+                        course +
+                        " ไม่ถูกต้อง"
+                    );
+                }
             }
-        });
+        );
     }
 
+    /*
+     * ตรวจสถานะรายวิชา
+     */
     private void validateCourseStatuses(
         EligibilityRequest request,
         List<String> errors
@@ -256,6 +358,7 @@ public class EligibilityService {
                 "กรุณาส่งสถานะรายวิชาที่กำลังศึกษา " +
                 "หรือเคยศึกษา"
             );
+
             return;
         }
 
@@ -267,12 +370,16 @@ public class EligibilityService {
             fixedCourse = "คพ.180";
         }
 
+        /*
+         * ตรวจว่ามีรายวิชาหลักของหลักสูตร
+         */
         if (
             !request.courseStatuses()
-                    .containsKey(fixedCourse)
+                .containsKey(fixedCourse)
         ) {
             errors.add(
-                "ไม่พบสถานะรายวิชา " + fixedCourse
+                "ไม่พบสถานะรายวิชา " +
+                fixedCourse
             );
         }
 
@@ -292,6 +399,9 @@ public class EligibilityService {
             );
         }
 
+        /*
+         * ตรวจว่ามีวิชาเลือกอย่างน้อยหนึ่งวิชา
+         */
         boolean hasAlternativeCourse =
             alternativeCourses.stream().anyMatch(
                 request.courseStatuses()::containsKey
@@ -304,9 +414,15 @@ public class EligibilityService {
             );
         }
 
+        /*
+         * ตรวจรูปแบบสถานะของทุกรายวิชา
+         */
         request.courseStatuses().forEach(
             (course, status) -> {
-                if (!ALLOWED_STATUSES.contains(status)) {
+                if (
+                    status == null ||
+                    !ALLOWED_STATUSES.contains(status)
+                ) {
                     errors.add(
                         "สถานะของวิชา " +
                         course +
@@ -317,6 +433,9 @@ public class EligibilityService {
         );
     }
 
+    /*
+     * ตรวจ checkbox ยืนยัน
+     */
     private void validateAcknowledgements(
         EligibilityRequest request,
         List<String> errors
@@ -328,13 +447,14 @@ public class EligibilityService {
             errors.add(
                 "ต้องส่งข้อมูลการยืนยันให้ครบ 3 ข้อ"
             );
+
             return;
         }
 
         boolean containsNull =
             request.acknowledgements()
-                   .stream()
-                   .anyMatch(value -> value == null);
+                .stream()
+                .anyMatch(value -> value == null);
 
         if (containsNull) {
             errors.add(
