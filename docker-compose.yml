@@ -1,4 +1,4 @@
-services:
+﻿services:
   db:
     image: mysql:8.4
     container_name: cs261-db
@@ -6,7 +6,7 @@ services:
       MYSQL_ROOT_PASSWORD: root1234
       MYSQL_DATABASE: cs261db
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - db-data:/var/lib/mysql
     healthcheck:
