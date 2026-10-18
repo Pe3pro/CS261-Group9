@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>แบบฟอร์มคำร้อง · ระบบสหกิจศึกษา</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;700&display=swap">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/u5.css">
+</head>
+
+<body class="u5" data-page="forms">
+    <header>ระบบสหกิจศึกษา<span><span id="who"></span> · <button id="switchUser" type="button">เปลี่ยนผู้ใช้</button></span>
+    </header>
+    <nav id="u5nav"></nav>
+    <div id="demoBar" class="demo-bar" hidden></div>
+    <main>
+        <section id="vPick" hidden></section>
+        <section id="vDenied" hidden>
+            <div class="card"><div class="alert bad" role="alert">หน้านี้สำหรับเจ้าหน้าที่เท่านั้น</div>
+                <a class="btn" href="notifications.html">ไปหน้าการแจ้งเตือน</a></div>
+        </section>
+
+        <!-- 1. รายการแบบฟอร์ม -->
+        <section id="vForms" hidden>
+            <div class="titlebar">
+                <div>
+                    <h1>แบบฟอร์มคำร้อง</h1>
+                    <p class="sub">สร้างแบบฟอร์มที่นักศึกษาใช้ยื่นคำร้องฝึกสหกิจศึกษา เปิดใช้งานได้ทีละ 1 ฉบับ</p>
+                </div>
+                <button class="btn" id="btnNew" type="button">+ สร้างแบบฟอร์มใหม่</button>
+            </div>
+            <div id="formsMsg" class="alert" role="status" hidden></div>
+            <div class="card flush">
+                <table class="tbl">
+                    <thead>
+                        <tr><th>ฉบับที่</th><th>ชื่อแบบฟอร์ม</th><th>จำนวนช่อง</th><th>หมดเขต</th><th>สถานะ</th><th></th></tr>
+                    </thead>
+                    <tbody id="formRows"></tbody>
+                </table>
+                <p id="formsEmpty" class="empty" hidden>ยังไม่มีแบบฟอร์ม กด "สร้างแบบฟอร์มใหม่" เพื่อเริ่ม</p>
+            </div>
+        </section>
+
+        <!-- 2. สร้าง / แก้ไขแบบฟอร์ม -->
+        <section id="vEdit" hidden>
+            <h1 id="editTitle">สร้างแบบฟอร์มใหม่</h1>
+            <p class="sub">กำหนดช่องที่นักศึกษาต้องกรอก บันทึกเป็นฉบับร่างก่อน แล้วค่อยเปิดใช้งาน</p>
+            <div class="card">
+                <h2>ข้อมูลแบบฟอร์ม</h2>
+                <div class="fld"><label for="fName">ชื่อแบบฟอร์ม *</label><input id="fName"
+                        placeholder="เช่น คำร้องขอฝึกสหกิจศึกษา 2/2569"></div>
+                <div class="fld"><label for="fDesc">คำอธิบายสำหรับนักศึกษา</label><textarea id="fDesc" rows="2"></textarea></div>
+                <div class="fld"><label for="fDeadline">วันเวลาหมดเขตยื่นคำร้อง (ต้องกำหนดก่อนเปิดใช้งาน)</label><input
+                        id="fDeadline" type="datetime-local"></div>
+            </div>
+            <div class="card">
+                <h2>ช่องในแบบฟอร์ม</h2>
+                <div id="fieldList"></div>
+                <button class="btn ghost" id="btnAddField" type="button">+ เพิ่มช่อง</button>
+            </div>
+            <div id="editErr" class="alert bad" role="alert" hidden></div>
+            <div class="acts"><button class="btn muted" id="btnCancel" type="button">ยกเลิก</button>
+                <div><button class="btn ghost" id="btnSaveDraft" type="button">บันทึกฉบับร่าง</button><button class="btn"
+                        id="btnSavePublish" type="button">บันทึกและเปิดใช้งาน</button></div>
+            </div>
+        </section>
+    </main>
+    <script src="js/u5-demo.js"></script>
+    <script src="js/u5.js"></script>
+</body>
+
+</html>
