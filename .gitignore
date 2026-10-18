@@ -2,3 +2,4 @@
 target/
 demo/bin/
 node_modules/
+.env
