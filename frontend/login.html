@@ -14,20 +14,20 @@
     <div class="login">
         <div>
             <h1>เข้าสู่ระบบ<br>เพื่อใช้งานแอปพลิเคชัน</h1>
-            <p class="sub">ใช้ Username และ Password ของมหาวิทยาลัย (ทดลอง: รหัสผ่าน 1234 · เจ้าหน้าที่ staff01 · อาจารย์ advisor01)</p>
+            <p class="sub">ใช้ Username และ Password ของมหาวิทยาลัย (บัญชี มธ.)<br><small>บัญชีทดลอง: staff01 · advisor01 · 6609650001 รหัสผ่าน 1234</small></p>
         </div>
         <form class="card" id="loginForm">
             <h2>Log in</h2>
-            <div class="fld"><label for="u">Username</label><input id="u" placeholder="รหัสนักศึกษา"
-                    autocomplete="username"></div>
+            <div class="fld"><label for="u">Username</label><input id="u" placeholder="รหัสนักศึกษา / รหัสบุคลากร"
+                    autocomplete="username" maxlength="50"></div>
             <div class="fld"><label for="p">Password</label><input id="p" type="password"
                     autocomplete="current-password"></div>
-            <button class="btn full" type="submit">เข้าสู่ระบบ</button>
-            <div class="alert bad" id="loginErr" role="alert" style="margin:12px 0 0" hidden><b>Log in
-                    ไม่สำเร็จ</b><br>Username หรือ Password ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง</div>
+            <button class="btn full" type="submit" id="loginBtn">เข้าสู่ระบบ</button>
+            <div class="alert bad" id="loginErr" role="alert" aria-live="assertive" style="margin:12px 0 0" hidden><b>Log in
+                    ไม่สำเร็จ</b><br><span id="loginErrMsg">Username หรือ Password ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง</span></div>
         </form>
     </div>
-    <script src="js/script.js"></script>
+    <script src="js/login.js"></script>
 </body>
 
 </html>
