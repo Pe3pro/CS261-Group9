@@ -1,0 +1,16 @@
+﻿{
+  "studentId": "ABC123",
+  "curriculum": "99",
+  "gpax": "3.10abc",
+  "grades": {
+    "CS100": "Z"
+  },
+  "courseStatuses": {
+    "CS180": "INVALID"
+  },
+  "acknowledgements": [
+    true,
+    true,
+    true
+  ]
+}
