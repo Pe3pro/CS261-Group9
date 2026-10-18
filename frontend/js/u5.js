@@ -65,6 +65,7 @@
    function logout() {
       setLoginName(null);              // เก็บความคืบหน้าอื่นของทีมไว้เหมือน logout ใน script.js
       store.set(USER_KEY, null);
+      store.set('u1-auth', null);      // U1: token จาก POST /api/auth/login
       location.href = 'login.html';
    }
 
