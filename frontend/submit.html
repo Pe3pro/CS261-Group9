@@ -1,49 +1,81 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ยื่นคำร้อง · ระบบสหกิจศึกษา</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;700&display=swap">
-<link rel="stylesheet" href="css/style.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>ยื่นคำร้อง · ระบบสหกิจศึกษา</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;700&display=swap">
+    <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body data-page="submit">
-<header>ระบบสหกิจศึกษา<span><span id="who"></span> · <button id="logout" type="button">ออกจากระบบ</button></span></header>
-<nav><a href="check.html">ตรวจสอบคุณสมบัติ</a><a href="submit.html" class="on" aria-current="page">ยื่นคำร้อง</a><a href="ranking.html">จับคู่บริษัท</a></nav>
-<main>
-<h1>ยื่นคำร้อง</h1><p class="sub">ยื่นคำร้องเข้าร่วมสหกิจศึกษา</p>
-<div class="steps"><span class="st cur"><i class="dot">1</i>กรอกข้อมูล</span><i></i><span class="st "><i class="dot">2</i>ตรวจสอบคำร้อง</span><i></i><span class="st "><i class="dot">3</i>ผลการยื่นคำร้อง</span></div>
+    <header>ระบบสหกิจศึกษา<span><span id="who"></span> · <button id="logout" type="button">ออกจากระบบ</button></span>
+    </header>
+    <nav><a href="check.html">ตรวจสอบคุณสมบัติ</a><a href="submit.html" class="on" aria-current="page">ยื่นคำร้อง</a><a
+            href="ranking.html">จับคู่บริษัท</a><a href="notifications.html" data-free>การแจ้งเตือน</a></nav>
+    <main>
+        <h1>ยื่นคำร้อง</h1>
+        <p class="sub">ยื่นคำร้องเข้าร่วมสหกิจศึกษา</p>
+        <div class="steps"><span class="st cur"><i class="dot">1</i>กรอกข้อมูล</span><i></i><span class="st "><i
+                    class="dot">2</i>ตรวจสอบคำร้อง</span><i></i><span class="st "><i
+                    class="dot">3</i>ผลการยื่นคำร้อง</span></div>
 
-<section id="vForm">
- <div class="card"><h2>ข้อมูลนักศึกษา</h2>
-  <div class="fld"><label for="s_name">ชื่อ-นามสกุล *</label><input id="s_name" placeholder="ชื่อ นามสกุล"></div>
-  <div class="fld"><label>รหัสนักศึกษา</label><input id="s_id" disabled></div>
-  <div class="g2">
-   <div class="fld"><label>คณะ</label><input id="s_fac" disabled></div>
-   <div class="fld"><label>สาขาวิชา</label><input id="s_major" disabled></div>
-   <div class="fld"><label>ชั้นปี</label><input value="3" disabled></div>
-   <div class="fld"><label>เกรดเฉลี่ยสะสม (GPA)</label><input id="s_gpax" disabled></div>
-   <div class="fld"><label for="s_tel">เบอร์โทรศัพท์ *</label><input id="s_tel" inputmode="tel" placeholder="08x-xxx-xxxx"></div>
-   <div class="fld"><label for="s_mail">อีเมล *</label><input id="s_mail" type="email" placeholder="name@email.com"></div>
-  </div>
-  <div class="fld"><label for="s_addr">ที่อยู่ปัจจุบัน *</label><textarea id="s_addr" rows="3"></textarea></div>
-  <div class="fld"><label for="s_tr">Transcript *</label><input id="s_tr" type="file" accept=".pdf,image/*"></div>
-  <div id="s_err" class="alert bad" role="alert" hidden>กรุณากรอกข้อมูลที่จำเป็นให้ครบ</div>
-  <div class="acts"><a class="btn ghost" href="check.html">ยกเลิก</a><button class="btn" id="btnSend" type="button">ส่งคำร้องเพื่อตรวจสอบ</button></div>
- </div>
-</section>
+        <section id="vForm">
+            <div class="card">
+                <h2>ข้อมูลนักศึกษา</h2>
+                <div class="fld"><label for="s_name">ชื่อ-นามสกุล *</label><input id="s_name"
+                        placeholder="ชื่อ นามสกุล"></div>
+                <div class="fld"><label>รหัสนักศึกษา</label><input id="s_id" disabled></div>
+                <div class="g2">
+                    <div class="fld"><label>คณะ</label><input id="s_fac" disabled></div>
+                    <div class="fld"><label>สาขาวิชา</label><input id="s_major" disabled></div>
+                    <div class="fld"><label>ชั้นปี</label><input value="3" disabled></div>
+                    <div class="fld"><label>เกรดเฉลี่ยสะสม (GPA)</label><input id="s_gpax" disabled></div>
+                    <div class="fld"><label for="s_tel">เบอร์โทรศัพท์ *</label><input id="s_tel" inputmode="tel"
+                            placeholder="08x-xxx-xxxx"></div>
+                    <div class="fld"><label for="s_mail">อีเมล *</label><input id="s_mail" type="email"
+                            placeholder="name@email.com"></div>
+                </div>
+                <div class="fld"><label for="s_addr">ที่อยู่ปัจจุบัน *</label><textarea id="s_addr" rows="3"></textarea>
+                </div>
+                <div class="fld"><label for="s_tr">Transcript *</label><input id="s_tr" type="file"
+                        accept=".pdf,image/*"></div>
+                <div id="s_err" class="alert bad" role="alert" hidden>กรุณากรอกข้อมูลที่จำเป็นให้ครบ</div>
+                <div class="acts"><a class="btn ghost" href="check.html">ยกเลิก</a><button class="btn" id="btnSend"
+                        type="button">ส่งคำร้องเพื่อตรวจสอบ</button></div>
+            </div>
+        </section>
 
-<section id="vLoad" hidden><div class="card"><h2>ผลการตรวจสอบคำร้อง</h2><div class="center"><div class="spin"></div><b>กำลังตรวจสอบ...</b><p class="sub">กรุณารอสักครู่ ระบบกำลังประมวลผลข้อมูล</p></div></div></section>
+        <section id="vLoad" hidden>
+            <div class="card">
+                <h2>ผลการตรวจสอบคำร้อง</h2>
+                <div class="center">
+                    <div class="spin"></div><b>กำลังตรวจสอบ...</b>
+                    <p class="sub">กรุณารอสักครู่ ระบบกำลังประมวลผลข้อมูล</p>
+                </div>
+            </div>
+        </section>
 
-<section id="vResult" hidden>
- <div class="card"><h2>ผลการตรวจสอบคำร้อง</h2>
-  <div id="sAlert" class="alert"></div>
-  <div class="res ok"><i class="dot">✓</i><p><b>ข้อมูลส่วนตัวครบถ้วน</b><small>ชื่อ เบอร์โทร อีเมล และที่อยู่</small></p></div>
-  <div id="sTr" class="res"><i class="dot"></i><p><b>เอกสาร Transcript</b><small></small></p></div>
-  <div class="acts"><span></span><div><button class="btn ghost" id="sRetry" type="button" hidden>ตรวจสอบอีกครั้ง</button><button class="btn" id="sEdit" type="button" hidden>แก้ไขข้อมูล</button><a class="btn" id="sNext" href="ranking.html" hidden>ไปจับคู่บริษัท</a></div></div>
- </div>
-</section>
-</main>
-<script src="js/script.js"></script>
+        <section id="vResult" hidden>
+            <div class="card">
+                <h2>ผลการตรวจสอบคำร้อง</h2>
+                <div id="sAlert" class="alert"></div>
+                <div class="res ok"><i class="dot">✓</i>
+                    <p><b>ข้อมูลส่วนตัวครบถ้วน</b><small>ชื่อ เบอร์โทร อีเมล และที่อยู่</small></p>
+                </div>
+                <div id="sTr" class="res"><i class="dot"></i>
+                    <p><b>เอกสาร Transcript</b><small></small></p>
+                </div>
+                <div class="acts"><span></span>
+                    <div><button class="btn ghost" id="sRetry" type="button" hidden>ตรวจสอบอีกครั้ง</button><button
+                            class="btn" id="sEdit" type="button" hidden>แก้ไขข้อมูล</button><a class="btn" id="sNext"
+                            href="ranking.html" hidden>ไปจับคู่บริษัท</a></div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <script src="js/script.js"></script>
 </body>
+
 </html>

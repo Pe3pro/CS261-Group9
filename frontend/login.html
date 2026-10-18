@@ -1,23 +1,33 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>เข้าสู่ระบบ · ระบบสหกิจศึกษา</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;700&display=swap">
-<link rel="stylesheet" href="css/style.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>เข้าสู่ระบบ · ระบบสหกิจศึกษา</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;700&display=swap">
+    <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body data-page="login">
-<header>ระบบสหกิจศึกษา<span>ติดต่อเจ้าหน้าที่</span></header>
-<div class="login">
- <div><h1>เข้าสู่ระบบ<br>เพื่อใช้งานแอปพลิเคชัน</h1><p class="sub">ใช้ Username และ Password ของมหาวิทยาลัย (ทดลอง: รหัสผ่าน 1234)</p></div>
- <form class="card" id="loginForm"><h2>Log in</h2>
-  <div class="fld"><label for="u">Username</label><input id="u" placeholder="รหัสนักศึกษา" autocomplete="username"></div>
-  <div class="fld"><label for="p">Password</label><input id="p" type="password" autocomplete="current-password"></div>
-  <button class="btn full" type="submit">เข้าสู่ระบบ</button>
-  <div class="alert bad" id="loginErr" role="alert" style="margin:12px 0 0" hidden><b>Log in ไม่สำเร็จ</b><br>Username หรือ Password ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง</div>
- </form>
-</div>
-<script src="js/script.js"></script>
+    <header>ระบบสหกิจศึกษา<span>ติดต่อเจ้าหน้าที่</span></header>
+    <div class="login">
+        <div>
+            <h1>เข้าสู่ระบบ<br>เพื่อใช้งานแอปพลิเคชัน</h1>
+            <p class="sub">ใช้ Username และ Password ของมหาวิทยาลัย (ทดลอง: รหัสผ่าน 1234 · เจ้าหน้าที่ staff01 · อาจารย์ advisor01)</p>
+        </div>
+        <form class="card" id="loginForm">
+            <h2>Log in</h2>
+            <div class="fld"><label for="u">Username</label><input id="u" placeholder="รหัสนักศึกษา"
+                    autocomplete="username"></div>
+            <div class="fld"><label for="p">Password</label><input id="p" type="password"
+                    autocomplete="current-password"></div>
+            <button class="btn full" type="submit">เข้าสู่ระบบ</button>
+            <div class="alert bad" id="loginErr" role="alert" style="margin:12px 0 0" hidden><b>Log in
+                    ไม่สำเร็จ</b><br>Username หรือ Password ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง</div>
+        </form>
+    </div>
+    <script src="js/script.js"></script>
 </body>
+
 </html>
