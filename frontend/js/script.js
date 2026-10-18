@@ -40,10 +40,13 @@ const DELAY = 1400;
 const NEED = { check: 1, submit: 2, ranking: 3 };
 /* หน้าแรกหลัง login = ขั้นแรกที่ยังทำไม่เสร็จ (unlocked 1→check, 2→submit, 3→ranking) */
 const HOME = () => ['check', 'submit', 'ranking'][Math.min(Math.max(S.unlocked, 1), 3) - 1] + '.html';
+/* U5: บัญชีเจ้าหน้าที่/อาจารย์ (staff01, advisor01, ...) ไปหน้าตรวจใบสมัครแทน (ชั่วคราวจนกว่า U1 จะมี role จาก backend) */
+const isStaffLogin = u => /^(staff|advisor)/i.test(u || '');
+const HOME_OF = u => isStaffLogin(u) ? 'staff-review.html' : HOME();
 
 function initShell() {
    $('#who').textContent = S.user;
-   $$('nav a').forEach((a, i) => { if (i + 1 > S.unlocked) { a.classList.add('disabled'); a.setAttribute('aria-disabled', 'true'); a.tabIndex = -1 } });
+   $$('nav a:not([data-free])').forEach((a, i) => { if (i + 1 > S.unlocked) { a.classList.add('disabled'); a.setAttribute('aria-disabled', 'true'); a.tabIndex = -1 } });
    $('#logout').onclick = () => { S.user = null; save(); location.href = 'login.html' };   // เก็บความคืบหน้าไว้ เพื่อให้ login ครั้งหน้าไปต่อขั้นเดิม
 }
 
@@ -51,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
    const page = document.body.dataset.page;
    if (page === 'login') return initLogin();
    if (!S.user) return location.replace('login.html');
+   if (isStaffLogin(S.user)) return location.replace('staff-review.html');   // U5: หน้านักศึกษาไม่ใช่ของเจ้าหน้าที่
    if (S.unlocked < NEED[page]) return location.replace('check.html');
    initShell();
    ({ check: initCheck, submit: initSubmit, ranking: initRanking })[page]();
@@ -60,11 +64,11 @@ document.addEventListener('DOMContentLoaded', () => {
    หน้า 1: LOGIN (login.html)
    ===================================================================== */
 function initLogin() {
-   if (S.user) return location.replace(HOME());
+   if (S.user) return location.replace(HOME_OF(S.user));
    $('#loginForm').addEventListener('submit', e => {
       e.preventDefault();
       const u = $('#u').value.trim(), p = $('#p').value;
-      if (u && p === '1234') { S.user = u; save(); location.href = HOME() }   // ทดลอง: รหัสผ่าน 1234
+      if (u && p === '1234') { S.user = u; save(); location.href = HOME_OF(u) }   // ทดลอง: รหัสผ่าน 1234
       else $('#loginErr').hidden = false;
    });
 }

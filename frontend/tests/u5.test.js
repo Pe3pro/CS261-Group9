@@ -12,9 +12,9 @@ const read = f => fs.readFileSync(path.join(testDir, '..', f), 'utf8');
 const script = read('js/u5.js');
 
 const USERS = {
-    staff: { id: 1, role: 'STAFF', name: 'สมศรี ทำงานดี (เจ้าหน้าที่)' },
-    advisor: { id: 2, role: 'ADVISOR', name: 'อ.ดร.วิชัย สอนดี (อาจารย์)' },
-    student: { id: 3, role: 'STUDENT', name: 'สมชาย ใจดี (นักศึกษา)' }
+    staff: { id: 1, role: 'STAFF', name: 'สมศรี ทำงานดี', username: 'staff01' },
+    advisor: { id: 2, role: 'ADVISOR', name: 'อ.ดร.วิชัย สอนดี', username: 'advisor01' },
+    student: { id: 3, role: 'STUDENT', name: 'สมชาย ใจดี', username: '6609650001' }
 };
 
 const APP = {
@@ -40,10 +40,13 @@ function fakeFetch(routes, calls) {
 
 const flush = () => new Promise(r => setTimeout(r, 20));
 
-async function open(file, user, routes = {}) {
+/* user = บัญชีที่ login แล้ว (cache ไว้แล้ว) · login = username ที่ login จาก login.html แต่ยังไม่ได้หา id */
+async function open(file, user, routes = {}, login = null) {
     const dom = new JSDOM(read(file), { url: 'http://localhost/' + file, runScripts: 'outside-only' });
     const { window } = dom;
     const calls = [];
+    const name = login || user?.username;
+    if (name) window.sessionStorage.setItem('coop-state', JSON.stringify({ user: name, unlocked: 3 }));
     if (user) window.sessionStorage.setItem('u5-user', JSON.stringify(user));
     window.fetch = fakeFetch(routes, calls);
     window.eval(script);
@@ -162,9 +165,28 @@ describe('U5:T7 หน้าตรวจคำร้อง (staff-review.html)',
         expect(doc.querySelector('#listErr').textContent).toContain('ไม่สามารถเชื่อมต่อระบบได้');
     });
 
-    test('UI-18 ยังไม่เลือกผู้ใช้ แสดงหน้าเลือกผู้ใช้ทดลอง', async () => {
-        const { doc } = await open('staff-review.html', null);
-        expect(doc.querySelectorAll('#vPick [data-uid]').length).toBe(3);
+    test('UI-18 ยังไม่ login (ไม่มี user ใน coop-state) ไม่เรียก API และไม่แสดงหน้าใด ๆ (ถูกส่งไป login.html)', async () => {
+        const { doc, calls } = await open('staff-review.html', null);
+        expect(calls.length).toBe(0);
+        expect(doc.querySelector('#vList').hidden).toBe(true);
+    });
+
+    test('UI-36 login จาก login.html แล้ว (มีแต่ username) หา id ด้วย GET /api/users/{username} แล้วใช้ id นั้นใน X-User-Id', async () => {
+        const { doc, calls } = await open('staff-review.html', null, {
+            ...listRoutes, 'GET /api/users/staff01': [200, { id: 1, username: 'staff01', name: 'สมศรี ทำงานดี', role: 'STAFF' }]
+        }, 'staff01');
+        expect(calls[0].path).toBe('/api/users/staff01');
+        expect(calls[1].path).toBe('/api/applications?status=SUBMITTED');
+        expect(calls[1].headers['X-User-Id']).toBe('1');
+        expect(doc.querySelector('#who').textContent).toBe('เจ้าหน้าที่ สมศรี ทำงานดี');
+    });
+
+    test('UI-38 username ที่ไม่มีในระบบ แสดงข้อความจาก server และปุ่มกลับไปหน้า Login', async () => {
+        const { doc } = await open('staff-review.html', null, {
+            'GET /api/users/nobody': [404, { code: 'NOT_FOUND', message: 'ไม่พบบัญชีผู้ใช้ nobody ในระบบ' }]
+        }, 'nobody');
+        expect(doc.querySelector('#vPick').textContent).toContain('ไม่พบบัญชีผู้ใช้ nobody ในระบบ');
+        expect(doc.querySelector('#btnRelogin')).not.toBeNull();
     });
 });
 
