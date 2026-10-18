@@ -12,12 +12,13 @@
    const API = window.U5_API_BASE || 'http://localhost:8080';
    const USER_KEY = 'u5-user';
    const DEMO_KEY = 'u5-demo';
+   const TEAM_KEY = 'coop-state';   // state ที่ login.html (U1) และ js/script.js ของทีมใช้ร่วมกัน
 
-   /* ผู้ใช้ทดลอง (ตรงกับ DemoDataSeeder) ใช้ไปก่อนจนกว่า U1 login จะต่อ backend จริง */
+   /* บัญชีทดลอง (ตรงกับ DemoDataSeeder) ใช้ username นี้ login ที่ login.html รหัสผ่าน 1234 */
    const DEMO_USERS = [
-      { id: 1, role: 'STAFF', name: 'สมศรี ทำงานดี' },
-      { id: 2, role: 'ADVISOR', name: 'อ.ดร.วิชัย สอนดี' },
-      { id: 3, role: 'STUDENT', name: 'สมชาย ใจดี', code: '6609650001' }
+      { id: 1, role: 'STAFF', name: 'สมศรี ทำงานดี', username: 'staff01' },
+      { id: 2, role: 'ADVISOR', name: 'อ.ดร.วิชัย สอนดี', username: 'advisor01' },
+      { id: 3, role: 'STUDENT', name: 'สมชาย ใจดี', username: '6609650001' }
    ];
    const ROLE_TH = { STAFF: 'เจ้าหน้าที่', ADVISOR: 'อาจารย์', STUDENT: 'นศ.' };
 
@@ -57,6 +58,16 @@
    let user = null;
    try { user = JSON.parse(store.get(USER_KEY) || 'null'); } catch (e) { user = null; }
 
+   /* username ที่ login ไว้จากหน้า login.html ของทีม (U1) */
+   function teamState() { try { return JSON.parse(store.get(TEAM_KEY) || '{}') || {}; } catch (e) { return {}; } }
+   const loginName = () => teamState().user || null;
+   function setLoginName(name) { const st = teamState(); st.user = name; store.set(TEAM_KEY, JSON.stringify(st)); }
+   function logout() {
+      setLoginName(null);              // เก็บความคืบหน้าอื่นของทีมไว้เหมือน logout ใน script.js
+      store.set(USER_KEY, null);
+      location.href = 'login.html';
+   }
+
    /* โหมดข้อมูลตัวอย่าง: ใช้ดูหน้าเว็บโดยไม่ต้องเปิด backend (?demo=1 เปิด, ?demo=0 ปิด) */
    const qs = new URLSearchParams(location.search);
    if (qs.get('demo') === '1') store.set(DEMO_KEY, '1');
@@ -84,19 +95,19 @@
          const b = document.createElement('button');
          b.type = 'button'; b.className = 'btn sm ghost'; b.style.marginLeft = '12px';
          b.textContent = 'ดูด้วยข้อมูลตัวอย่าง';
-         b.onclick = () => { store.set(DEMO_KEY, '1'); location.reload(); };
+         b.onclick = () => { const q = new URLSearchParams(location.search); q.set('demo', '1'); location.search = q.toString(); };
          el.appendChild(b);
       }
    }
 
    /* ---------- ส่วนหัว เมนู และการเลือกผู้ใช้ทดลอง ---------- */
    function initShell(page) {
-      $('#who').textContent = user ? ROLE_TH[user.role] + ' ' + user.name : 'ยังไม่ได้เลือกผู้ใช้';
-      $('#switchUser').onclick = () => { store.set(USER_KEY, null); user = null; location.reload(); };
+      $('#who').textContent = user ? ROLE_TH[user.role] + ' ' + user.name : (loginName() || 'ยังไม่ได้เข้าสู่ระบบ');
+      $('#logout').onclick = logout;
       let links = [];
       if (user?.role === 'STAFF') links = [['staff-review.html', 'ตรวจใบสมัคร', 'review'], ['staff-forms.html', 'แบบฟอร์มคำร้อง', 'forms']];
       if (user?.role === 'ADVISOR') links = [['staff-review.html', 'พิจารณาใบสมัคร', 'review']];
-      if (user?.role === 'STUDENT') links = [['check.html', 'ตรวจสอบคุณสมบัติ', 'check'], ['submit.html', 'ยื่นคำร้องออนไลน์', 'submit'], ['ranking.html', 'จับคู่บริษัท', 'ranking']];
+      if (user?.role === 'STUDENT') links = [['check.html', 'ตรวจสอบคุณสมบัติ', 'check'], ['submit.html', 'ยื่นคำร้อง', 'submit'], ['ranking.html', 'จับคู่บริษัท', 'ranking']];
       if (user) links.push(['notifications.html', 'การแจ้งเตือน', 'notifications']);
       $('#u5nav').innerHTML = links.map(([href, label, p]) =>
          `<a href="${href}"${p === page ? ' class="on" aria-current="page"' : ''}>${label}</a>`).join('');
@@ -108,17 +119,44 @@
       }
    }
 
+   /* โหมดข้อมูลตัวอย่างที่ยังไม่ได้ login: เลือกบัญชีทดลอง (เขียน username ลง state ของทีมให้ด้วย) */
    function renderPicker() {
       const el = $('#vPick');
       el.innerHTML = `<h1>เลือกผู้ใช้ทดลอง</h1>
-         <p class="sub">ชั่วคราวจนกว่าระบบ Login (U1) จะเชื่อมกับ backend</p>
-         <div class="card pick">${DEMO_USERS.map(u => `<button class="btn ghost" type="button" data-uid="${u.id}">${ROLE_TH[u.role]} ${esc(u.name)}</button>`).join('')}</div>`;
+         <p class="sub">โหมดข้อมูลตัวอย่าง · ถ้าใช้ระบบจริงให้เข้าสู่ระบบที่ <a href="login.html">หน้า Login</a></p>
+         <div class="card pick">${DEMO_USERS.map(u => `<button class="btn ghost" type="button" data-uid="${u.id}">${ROLE_TH[u.role]} ${esc(u.name)} (${u.username})</button>`).join('')}</div>`;
       el.hidden = false;
       $$('[data-uid]', el).forEach(b => b.onclick = () => {
          user = DEMO_USERS.find(u => String(u.id) === b.dataset.uid);
          store.set(USER_KEY, JSON.stringify(user));
+         setLoginName(user.username);
          location.reload();
       });
+   }
+
+   /* login แล้วแต่หาบัญชีไม่เจอ / เชื่อมต่อไม่ได้ */
+   function renderLoginProblem(r) {
+      const el = $('#vPick');
+      el.innerHTML = `<h1>เข้าใช้งานไม่ได้</h1>
+         <div class="card"><p class="errmsg" id="loginErr" style="margin:0 0 16px"></p>
+         <p class="mute" style="margin:0 0 16px">บัญชีทดลอง: staff01 (เจ้าหน้าที่) · advisor01 (อาจารย์) · 6609650001 (นักศึกษา) รหัสผ่าน 1234</p>
+         <button class="btn" type="button" id="btnRelogin">กลับไปหน้า Login</button></div>`;
+      el.hidden = false;
+      showErr($('#loginErr'), r);
+      $('#btnRelogin').onclick = logout;
+   }
+
+   /* หา id และ role ของคนที่ login ไว้ (ใช้ซ้ำจาก sessionStorage ถ้าเป็นคนเดิม) */
+   async function resolveUser() {
+      const name = loginName();
+      if (!name) { user = null; return { ok: false, status: 401 }; }
+      if (user && user.username === name) return { ok: true };
+      user = null;
+      const r = await api('/api/users/' + encodeURIComponent(name));
+      if (!r.ok) { store.set(USER_KEY, null); return r; }
+      user = { id: r.data.id, role: r.data.role, name: r.data.name, username: r.data.username };
+      store.set(USER_KEY, JSON.stringify(user));
+      return { ok: true };
    }
 
    /* =====================================================================
@@ -449,12 +487,14 @@
 
    /* ---------- เริ่มทำงาน ---------- */
    let started = false;
-   function start() {
+   async function start() {
       if (started) return;
       started = true;
       const page = document.body.dataset.page;
+      if (!loginName() && !demo()) return location.replace('login.html');   // ยังไม่ login → ไปหน้า login ของทีม
+      const who = await resolveUser();
       initShell(page);
-      if (!user) return renderPicker();
+      if (!who.ok) return who.status === 401 ? renderPicker() : renderLoginProblem(who);
       if (page === 'review') return initReview();
       if (page === 'forms') return initForms();
       if (page === 'notifications') return initNotifications();

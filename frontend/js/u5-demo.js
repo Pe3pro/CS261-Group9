@@ -7,6 +7,7 @@
    'use strict';
    const KEY = 'u5-demo-db';
    const USERS = { 1: ['STAFF', 'สมศรี ทำงานดี'], 2: ['ADVISOR', 'อ.ดร.วิชัย สอนดี'], 3: ['STUDENT', 'สมชาย ใจดี'], 4: ['STUDENT', 'สมหญิง รักเรียน'] };
+   const LOGINS = { 1: 'staff01', 2: 'advisor01', 3: '6609650001', 4: '6609650002' };   // username ตาม DemoDataSeeder
    const pad = n => String(n).padStart(2, '0');
    const now = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`; };
    const daysAgo = (n, h, m) => { const d = new Date(); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(h)}:${pad(m)}:00`; };
@@ -57,10 +58,16 @@
 
    function handle(method, path, body, uid) {
       const db = load();
+      let m;
+      /* หา id/role จาก username ที่ login ไว้ (ไม่ต้องมี X-User-Id) */
+      if (method === 'GET' && (m = path.match(/^\/api\/users\/([^/?]+)$/))) {
+         const name = decodeURIComponent(m[1]).trim();
+         const id = Object.keys(LOGINS).find(k => LOGINS[k] === name);
+         return Promise.resolve(id ? ok({ id: +id, username: name, name: USERS[id][1], role: USERS[id][0] }) : err(404, 'NOT_FOUND', 'ไม่พบบัญชีผู้ใช้ ' + name + ' ในระบบ'));
+      }
       const role = (USERS[uid] || [])[0];
       if (!role) return err(401, 'UNAUTHORIZED', 'กรุณาเข้าสู่ระบบก่อนใช้งาน');
       const staffish = role === 'STAFF' || role === 'ADVISOR';
-      let m;
       const res = (() => {
          if (method === 'GET' && (m = path.match(/^\/api\/applications\?status=(\w+)$/))) {
             if (!staffish) return err(403, 'FORBIDDEN', 'คุณไม่มีสิทธิ์ใช้งานส่วนนี้');
