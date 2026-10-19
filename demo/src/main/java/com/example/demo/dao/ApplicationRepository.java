@@ -17,4 +17,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     List<Application> findByStudentId(Long studentId);
 
     long countByStatus(ApplicationStatus status);
+
+    /** U3: คำร้องของนักศึกษา ฉบับล่าสุดก่อน (GET /api/requests/me) */
+    List<Application> findByStudentIdOrderByIdDesc(Long studentId);
 }

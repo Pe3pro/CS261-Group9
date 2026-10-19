@@ -23,6 +23,7 @@
 
         <section id="vForm">
             <div class="card">
+                <div id="s_note" class="alert bad" role="status" hidden></div>
                 <h2>ข้อมูลนักศึกษา</h2>
                 <div class="fld"><label for="s_name">ชื่อ-นามสกุล *</label><input id="s_name"
                         placeholder="ชื่อ นามสกุล"></div>
@@ -40,7 +41,7 @@
                 <div class="fld"><label for="s_addr">ที่อยู่ปัจจุบัน *</label><textarea id="s_addr" rows="3"></textarea>
                 </div>
                 <div class="fld"><label for="s_tr">Transcript *</label><input id="s_tr" type="file"
-                        accept=".pdf,image/*"></div>
+                        accept=".pdf,application/pdf"></div>
                 <div id="s_err" class="alert bad" role="alert" hidden>กรุณากรอกข้อมูลที่จำเป็นให้ครบ</div>
                 <div class="acts"><a class="btn ghost" href="check.html">ยกเลิก</a><button class="btn" id="btnSend"
                         type="button">ส่งคำร้องเพื่อตรวจสอบ</button></div>

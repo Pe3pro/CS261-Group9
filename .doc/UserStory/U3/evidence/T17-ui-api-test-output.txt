@@ -1,0 +1,17 @@
+U3:T17 Integration UI ↔ API · 19/10/2569 18:55:52 · Chromium 141.0.7390.37 · API http://localhost:8080
+✅ U3-INT-06
+     หมดเขต 2026-10-19T18:56:12 (เวลา server) · POST /api/requests → 201 → PUT /api/requests/3/form → 200 → POST /api/requests/3/documents → 201 → POST /api/requests/3/submit → 409 · หน้าเว็บแสดง "เกินระยะเวลาที่กำหนด ไม่สามารถยื่นคำร้องได้" · คำร้อง #3 ในฐานข้อมูลยังเป็น DRAFT submittedAt=null
+✅ U3-INT-08
+     POST /api/requests → FAILED (net::ERR_CONNECTION_REFUSED) · หน้าเว็บแสดง "ไม่สามารถเชื่อมต่อระบบได้ กรุณาลองใหม่อีกครั้ง" ข้อมูลที่กรอกยังอยู่ครบ
+✅ U3-INT-02
+     POST /api/requests → 201 → PUT /api/requests/4/form → 200 → POST /api/requests/4/submit → 400 · หน้าเว็บแถบสีแดง "ไม่พบไฟล์หรือไฟล์อ่านไม่ได้" · คำร้อง #4 ยังเป็น DRAFT
+✅ U3-INT-01
+     POST /api/requests → 201 → PUT /api/requests/5/form → 200 → POST /api/requests/5/documents → 201 → POST /api/requests/5/submit → 200 · หน้าเว็บ "ยื่นคำร้องสำเร็จ เลขที่คำร้อง 5 · สถานะ: ยื่นแล้ว รอเจ้าหน้าที่ตรวจสอบ" · ฐานข้อมูล: คำร้อง #5 SUBMITTED คำตอบ 4 ช่อง + เอกสาร 1 ไฟล์ ผูกกับคำร้องเดียวกัน
+✅ U3-INT-04
+     GET /api/applications?status=SUBMITTED → 200 · แถวในตาราง: "6609650003สมปอง ตั้งใจ19 ต.ค. 2569 18:561 ไฟล์รอตรวจ ตรวจ" · detail: ชื่อ-นามสกุล=สมชาย ใจดี, เบอร์โทรศัพท์=0812345678, อีเมล=somchai@dome.tu.ac.th, ที่อยู่ปัจจุบัน=99 ม.ธ. รังสิต ตรงกับที่นักศึกษากรอก
+✅ U3-INT-05
+     GET /api/requests/me → 200 (SUBMITTED) · หน้าเว็บ "คุณมีคำร้องประเภทนี้ที่อยู่ระหว่างดำเนินการแล้ว (เลขที่คำร้อง 2 · สถานะ: ยื่นแล้ว รอเจ้าหน้าที่ตรวจสอบ)" ปุ่มส่งกดไม่ได้ · POST /api/requests (ยิงตรง) → 409 DUPLICATE_REQUEST · จำนวนคำร้องของ B 1 → 1
+✅ U3-INT-07
+     เจ้าหน้าที่ RETURN คำร้อง #1 · หน้าเว็บแสดง "เจ้าหน้าที่ส่งคำร้องเลขที่ 1 กลับให้แก้ไข: กรุณาแนบ Transcript ฉบับล่าสุด และตรวจเบอร์โทร" · GET /api/requests/me → 200 → PUT /api/requests/1/form → 200 → POST /api/requests/1/submit → 200 · "ยื่นคำร้องสำเร็จ เลขที่คำร้อง 1 · สถานะ: ยื่นแล้ว รอเจ้าหน้าที่ตรวจสอบ" · ฐานข้อมูล: #1 (เลขเดิม) SUBMITTED เบอร์โทรใหม่ 0899999999
+
+สรุป: ทั้งหมด 7 ข้อ · ผ่าน 7 · ไม่ผ่าน 0
