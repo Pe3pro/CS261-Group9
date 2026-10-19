@@ -33,7 +33,16 @@
     depends_on:
       db:
         condition: service_healthy
-
+  web:
+    image: nginx:alpine
+    container_name: cs261-web
+    ports:
+      - "8081:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    depends_on:
+      - app
+      
 volumes:
   db-data:
   uploads:
