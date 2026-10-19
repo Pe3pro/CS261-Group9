@@ -141,10 +141,16 @@ const HOME = () => {
     return ['check', 'submit', 'ranking'][index] + '.html';
 };
 
+/* U1: role มาจาก backend (POST /api/auth/login) เก็บไว้ใน sessionStorage 'u5-user' โดย js/login.js
+   ไม่ใช่นักศึกษา → ไปหน้าตรวจใบสมัคร (ถ้ายังไม่มี role ใช้วิธีเดิมของ U5: ดูจากชื่อ staff/advisor) */
+const loginRole = u => { try { const x = JSON.parse(sessionStorage.getItem('u5-user') || 'null'); return x && x.username === u ? x.role : null } catch (e) { return null } };
+const isStaffLogin = u => { const r = loginRole(u); return r ? r !== 'STUDENT' : /^(staff|advisor)/i.test(u || '') };
+const HOME_OF = u => isStaffLogin(u) ? 'staff-review.html' : HOME();
+
 function initShell() {
     $('#who').textContent = S.user;
 
-    $$('nav a').forEach((link, index) => {
+    $$('nav a:not([data-free])').forEach((link, index) => {
         if (index + 1 > S.unlocked) {
             link.classList.add('disabled');
             link.setAttribute('aria-disabled', 'true');
@@ -155,6 +161,7 @@ function initShell() {
     $('#logout').onclick = () => {
         S.user = null;
         save();
+        try { sessionStorage.removeItem('u1-auth'); sessionStorage.removeItem('u5-user') } catch (e) { }
         location.href = 'login.html';
     };
 }
@@ -169,6 +176,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!S.user) {
         return location.replace('login.html');
+    }
+
+    // U5: หน้านักศึกษาไม่ใช่ของเจ้าหน้าที่
+    if (isStaffLogin(S.user)) {
+        return location.replace('staff-review.html');
     }
 
     if (S.unlocked < NEED[page]) {
@@ -194,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
    ========================================================= */
 function initLogin() {
     if (S.user) {
-        return location.replace(HOME());
+        return location.replace(HOME_OF(S.user));
     }
 
     $('#loginForm').addEventListener('submit', event => {
@@ -207,7 +219,7 @@ function initLogin() {
         if (username && password === '1234') {
             S.user = username;
             save();
-            location.href = HOME();
+            location.href = HOME_OF(username);
         } else {
             $('#loginErr').hidden = false;
         }

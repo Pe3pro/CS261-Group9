@@ -24,6 +24,8 @@
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/cs261db
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root1234
+      # U1: Application-Key ของ TU REST API อ่านจากไฟล์ .env (ไม่ commit) หรือ environment ของเครื่อง
+      TU_API_KEY: ${TU_API_KEY:-}
     depends_on:
       db:
         condition: service_healthy

@@ -1,0 +1,183 @@
+package com.example.demo.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Optional;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import com.example.demo.dao.ApplicationRepository;
+import com.example.demo.dao.ApprovalRepository;
+import com.example.demo.dto.ApprovalRequest;
+import com.example.demo.dto.ApprovalResponse;
+import com.example.demo.entity.Application;
+import com.example.demo.entity.ApplicationStatus;
+import com.example.demo.entity.Approval;
+import com.example.demo.entity.ApprovalDecision;
+import com.example.demo.entity.ApprovalLevel;
+import com.example.demo.entity.Role;
+import com.example.demo.entity.User;
+
+/** U5:T8 Unit test logic การพิจารณาคำร้อง (ApprovalService) โดยไม่ต่อฐานข้อมูล */
+class ApprovalServiceTest {
+
+    private static final ZoneId BKK = ZoneId.of("Asia/Bangkok");
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-10-16T04:00:00Z"), BKK); // 11:00 น.
+
+    private ApplicationRepository applications;
+    private ApprovalRepository approvals;
+    private NotificationService notifications;
+    private AccessGuard guard;
+    private ApprovalService service;
+
+    private final User staff = user(1L, "สมศรี ทำงานดี", Role.STAFF);
+    private final User advisor = user(2L, "อ.ดร.วิชัย สอนดี", Role.ADVISOR);
+
+    @BeforeEach
+    void setUp() {
+        applications = mock(ApplicationRepository.class);
+        approvals = mock(ApprovalRepository.class);
+        notifications = mock(NotificationService.class);
+        guard = mock(AccessGuard.class);
+        service = new ApprovalService(applications, approvals, notifications, guard, CLOCK);
+        when(guard.require(1L, Role.STAFF, Role.ADVISOR)).thenReturn(staff);
+        when(guard.require(2L, Role.STAFF, Role.ADVISOR)).thenReturn(advisor);
+        when(approvals.save(any(Approval.class))).thenAnswer(inv -> {
+            Approval a = inv.getArgument(0);
+            ReflectionTestUtils.setField(a, "id", 900L);
+            return a;
+        });
+    }
+
+    private static User user(Long id, String name, Role role) {
+        User u = new User("u" + id, name, null, role);
+        ReflectionTestUtils.setField(u, "id", id);
+        return u;
+    }
+
+    private Application application(ApplicationStatus status) {
+        Application a = new Application(20L, 10L, status);
+        ReflectionTestUtils.setField(a, "id", 50L);
+        when(applications.findById(50L)).thenReturn(Optional.of(a));
+        return a;
+    }
+
+    @Test
+    @DisplayName("SV-AP01 เจ้าหน้าที่อนุมัติคำร้อง SUBMITTED → UNDER_REVIEW และแจ้งเตือน")
+    void staffApprove() {
+        Application app = application(ApplicationStatus.SUBMITTED);
+
+        ApprovalResponse res = service.decide(50L, 1L, new ApprovalRequest(ApprovalDecision.APPROVE, null));
+
+        assertThat(res.applicationStatus()).isEqualTo(ApplicationStatus.UNDER_REVIEW);
+        assertThat(res.approvalLevel()).isEqualTo(ApprovalLevel.STAFF);
+        assertThat(res.approverName()).isEqualTo("สมศรี ทำงานดี");
+        assertThat(res.decidedAt()).isEqualTo(LocalDateTime.of(2026, 10, 16, 11, 0));
+        assertThat(app.getStatus()).isEqualTo(ApplicationStatus.UNDER_REVIEW);
+        verify(applications).save(app);
+        verify(notifications).notifyAfterDecision(app, ApprovalLevel.STAFF, ApprovalDecision.APPROVE, null);
+    }
+
+    @Test
+    @DisplayName("SV-AP02 อาจารย์อนุมัติคำร้อง UNDER_REVIEW → APPROVED")
+    void advisorApprove() {
+        application(ApplicationStatus.UNDER_REVIEW);
+
+        ApprovalResponse res = service.decide(50L, 2L, new ApprovalRequest(ApprovalDecision.APPROVE, "ดีมาก"));
+
+        assertThat(res.applicationStatus()).isEqualTo(ApplicationStatus.APPROVED);
+        assertThat(res.approvalLevel()).isEqualTo(ApprovalLevel.ADVISOR);
+        assertThat(res.comment()).isEqualTo("ดีมาก");
+    }
+
+    @Test
+    @DisplayName("SV-AP03 ส่งกลับแก้ไขพร้อมเหตุผล → NEED_CORRECTION (ตัดช่องว่างหน้าหลัง)")
+    void returnWithReason() {
+        application(ApplicationStatus.SUBMITTED);
+
+        ApprovalResponse res = service.decide(50L, 1L,
+                new ApprovalRequest(ApprovalDecision.RETURN, "  Transcript ไม่ชัด  "));
+
+        assertThat(res.applicationStatus()).isEqualTo(ApplicationStatus.NEED_CORRECTION);
+        assertThat(res.comment()).isEqualTo("Transcript ไม่ชัด");
+    }
+
+    @Test
+    @DisplayName("SV-AP04 อาจารย์ปฏิเสธพร้อมเหตุผล → REJECTED")
+    void advisorReject() {
+        application(ApplicationStatus.UNDER_REVIEW);
+
+        ApprovalResponse res = service.decide(50L, 2L,
+                new ApprovalRequest(ApprovalDecision.REJECT, "หน่วยกิตไม่ครบ"));
+
+        assertThat(res.applicationStatus()).isEqualTo(ApplicationStatus.REJECTED);
+    }
+
+    @Test
+    @DisplayName("SV-AP05 ส่งกลับแก้ไขโดยเหตุผลเป็นช่องว่าง ได้ 400 และไม่บันทึก")
+    void returnWithoutReason() {
+        application(ApplicationStatus.SUBMITTED);
+
+        assertThatThrownBy(() -> service.decide(50L, 1L, new ApprovalRequest(ApprovalDecision.RETURN, "   ")))
+                .isInstanceOf(ApiException.class).extracting("status").isEqualTo(400);
+        verify(approvals, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("SV-AP06 ไม่เลือกผลการพิจารณา ได้ 400")
+    void noDecision() {
+        assertThatThrownBy(() -> service.decide(50L, 1L, new ApprovalRequest(null, null)))
+                .isInstanceOf(ApiException.class).extracting("status").isEqualTo(400);
+    }
+
+    @Test
+    @DisplayName("SV-AP07 อาจารย์ตัดสินคำร้องที่ยัง SUBMITTED ได้ 409 และสถานะไม่เปลี่ยน")
+    void advisorTooEarly() {
+        Application app = application(ApplicationStatus.SUBMITTED);
+
+        assertThatThrownBy(() -> service.decide(50L, 2L, new ApprovalRequest(ApprovalDecision.APPROVE, null)))
+                .isInstanceOf(ApiException.class).extracting("status").isEqualTo(409);
+        assertThat(app.getStatus()).isEqualTo(ApplicationStatus.SUBMITTED);
+        verify(approvals, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("SV-AP08 เจ้าหน้าที่ตัดสินคำร้องที่ตัดสินไปแล้ว (UNDER_REVIEW) ได้ 409 กันการกดซ้ำ")
+    void staffDecidesTwice() {
+        application(ApplicationStatus.UNDER_REVIEW);
+
+        assertThatThrownBy(() -> service.decide(50L, 1L, new ApprovalRequest(ApprovalDecision.APPROVE, null)))
+                .isInstanceOf(ApiException.class).extracting("status").isEqualTo(409);
+    }
+
+    @Test
+    @DisplayName("SV-AP09 คำร้องที่ไม่มีอยู่ ได้ 404")
+    void notFound() {
+        when(applications.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.decide(999L, 1L, new ApprovalRequest(ApprovalDecision.APPROVE, null)))
+                .isInstanceOf(ApiException.class).extracting("status").isEqualTo(404);
+    }
+
+    @Test
+    @DisplayName("SV-AP10 นักศึกษาเรียกใช้ ได้ 403 จาก AccessGuard")
+    void studentForbidden() {
+        when(guard.require(3L, Role.STAFF, Role.ADVISOR)).thenThrow(ApiException.forbidden());
+
+        assertThatThrownBy(() -> service.decide(50L, 3L, new ApprovalRequest(ApprovalDecision.APPROVE, null)))
+                .isInstanceOf(ApiException.class).extracting("status").isEqualTo(403);
+    }
+}
