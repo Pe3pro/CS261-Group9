@@ -261,7 +261,7 @@
          ? a.documents.map(d => `<div class="doc"><span class="ico">PDF</span><div>${esc(d.fileName)}<small>${d.status === 'VERIFIED' ? 'ตรวจแล้ว' : 'อัปโหลดแล้ว'}</small></div>
             <button type="button" class="btn sm ghost" data-doc="${d.id}">ดูไฟล์</button></div>`).join('')
          : '<div class="alert bad">ไม่พบเอกสารแนบ</div>';
-      $$('[data-doc]').forEach(b => b.onclick = () => { if (!demo()) window.open(API + '/api/documents/' + b.dataset.doc, '_blank'); });
+      $$('[data-doc]').forEach(b => b.onclick = () => { if (!demo()) window.open(API + '/api/documents/' + b.dataset.doc + '?userId=' + encodeURIComponent(user?.id ?? ''), '_blank'); });
       const hist = [`<div class="hist"><i class="dot ok">✓</i><span>ยื่นใบสมัคร<small>${fmtDate(a.submittedAt)} · ${esc(a.studentName)}</small></span></div>`]
          .concat((a.approvals || []).map(p => `<div class="hist"><i class="dot ok">✓</i><span>${p.approvalLevel === 'STAFF' ? 'เจ้าหน้าที่' : 'อาจารย์'}: ${DECISION_TH[p.decision]}<small>${fmtDate(p.decidedAt)} · ${esc(p.approverName)}${p.comment ? ' · ' + esc(p.comment) : ''}</small></span></div>`));
       if (a.status === 'SUBMITTED') hist.push('<div class="hist"><i class="dot">2</i><span>รอเจ้าหน้าที่ตรวจ<small>สถานะ SUBMITTED</small></span></div>');
