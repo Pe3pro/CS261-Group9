@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>การแจ้งเตือน · ระบบสหกิจศึกษา</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;700&display=swap">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/u5.css">
+</head>
+
+<body class="u5" data-page="notifications">
+    <header>ระบบสหกิจศึกษา<span><span id="who"></span> · <button id="logout" type="button">ออกจากระบบ</button></span>
+    </header>
+    <nav id="u5nav"></nav>
+    <div id="demoBar" class="demo-bar" hidden></div>
+    <main class="narrow">
+        <section id="vPick" hidden></section>
+        <section id="vNotif" hidden>
+            <h1>การแจ้งเตือน</h1>
+            <p class="sub" id="notifSub">ผลการพิจารณาใบสมัครฝึกสหกิจศึกษาของคุณ</p>
+            <div id="notifErr" class="alert bad" role="alert" hidden></div>
+            <div class="card" id="notifList" style="padding:12px 28px"></div>
+        </section>
+    </main>
+    <script src="js/u5-demo.js"></script>
+    <script src="js/u5.js"></script>
+</body>
+
+</html>

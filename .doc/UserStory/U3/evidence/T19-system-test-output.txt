@@ -1,0 +1,44 @@
+U3:T19 System test · 19/10/2569 18:54:10 · Chromium 141.0.7390.37 · API http://localhost:8080
+▶ ST-01
+   ✓ ST-01 ขั้น 1: POST /api/auth/login → 200 เข้าหน้า check.html
+   ✓ ST-01 ขั้น 2: เติมอัตโนมัติจากฐานข้อมูล (GET /api/students/me): 6609650003 · วิทยาศาสตร์และเทคโนโลยี · วิทยาการคอมพิวเตอร์ · GPA 3.25
+   ✓ ST-01 ขั้น 3: POST /api/requests → 201 (DRAFT) · PUT /api/requests/3/form → 200
+   ✓ ST-01 ขั้น 4: POST /api/requests/3/documents → 201 · เอกสาร #3 ในตาราง documents · ไฟล์ในที่เก็บ PDF เปิดกลับได้ 74 bytes ตรงกับต้นฉบับ
+   ✓ ST-01 ขั้น 5: POST /api/requests/3/submit → 200 · ฐานข้อมูล: SUBMITTED submittedAt=2026-10-19T18:54:12.470712
+   ✓ ST-01 ขั้น 6: แถบผลสีเขียว "ยื่นคำร้องสำเร็จ เลขที่คำร้อง 3 · สถานะ: ยื่นแล้ว รอเจ้าหน้าที่ตรวจสอบ"
+   ✓ ST-01 ขั้น 7: Email ใน log: [EMAIL] to=sompong@dome.tu.ac.th subject=ได้รับคำร้องขอฝึกสหกิจศึกษาแล้ว body=ระบบได้รับคำร้องเลขที่ 3 ของคุณแล้ว สถานะ: รอเจ้าหน้าที่ตรวจสอบ
+   ✓ ST-01 ขั้น 8: เจ้าหน้าที่เห็นคำร้องของ 6609650003 ในรายการรอตรวจ · กดดูไฟล์เปิด /api/documents/3?userId=1 → 200 application/pdf
+ST-01 ผ่านครบ 8 ขั้น คำร้อง #3
+▶ ST-02
+   ✓ ST-02 ขั้น 1: หน้าเว็บ "คุณมีคำร้องประเภทนี้ที่อยู่ระหว่างดำเนินการแล้ว (เลขที่คำร้อง 2 · สถานะ: ยื่นแล้ว รอเจ้าหน้าที่ตรวจสอบ)" ปุ่มส่งกดไม่ได้
+   ✓ ST-02 ขั้น 2: ยิง POST /api/requests/2/submit ตรง (แทน Postman) → 409 INVALID_STATUS
+   ✓ ST-02 ขั้น 3: ฐานข้อมูล: คำร้องของ B 1 แถว สถานะ SUBMITTED submittedAt ไม่เปลี่ยน
+   ✓ ST-02 ขั้น 4: เอกสาร 1 → 1 ไฟล์ · Email ถึง B 0 → 0
+ST-02 ผ่านครบ 4 ขั้น
+▶ ST-04
+   ✓ ST-04 ขั้น 1: สถานะ NEED_CORRECTION (= CORRECTION_REQUIRED ในเอกสาร) · Email: [EMAIL] to=sompong@dome.tu.ac.th subject=ใบสมัครถูกส่งกลับให้แก้ไข body=คำร้องเลขที่ 3: กรุณาแก้ไขใบสมัครแล้วส่งใหม่ก่อนหมดเขต. เหตุผล: กรุณาแนบ Transcript ฉบับล่าสุด และตรวจเบอร์โทร
+   ✓ ST-04 ขั้น 2: หน้าเว็บ "เจ้าหน้าที่ส่งคำร้องเลขที่ 3 กลับให้แก้ไข: กรุณาแนบ Transcript ฉบับล่าสุด และตรวจเบอร์โทร" กรอกได้
+   ✓ ST-04 ขั้น 3: PUT /api/requests/3/form → 200 → POST /api/requests/3/documents → 201 → POST /api/requests/3/submit → 200 · ใช้คำร้องเดิม #3 สถานะ SUBMITTED
+   ✓ ST-04 ขั้น 4: เจ้าหน้าที่เห็นเบอร์โทร 0899999999 และไฟล์ transcript-v2.pdf (ฉบับล่าสุด 104 bytes)
+ST-04 ผ่านครบ 4 ขั้น
+▶ ST-03
+   ✓ ST-03 ขั้น 1: เปิดฟอร์มที่หมดเขต 2026-10-19T18:54:34 (เวลา server) และรอจนเลยเวลาแล้ว
+   ✓ ST-03 ขั้น 2: หน้าเว็บ "เกินระยะเวลาที่กำหนด ไม่สามารถยื่นคำร้องได้ (หมดเขต 19 ต.ค. 2569 18:54)" ปุ่มส่งกดไม่ได้
+   ✓ ST-03 ขั้น 3: ยิง POST /api/requests/4/submit ตรง → 409 DEADLINE_PASSED
+   ✓ ST-03 ขั้น 4: นาฬิกาเบราว์เซอร์ = Sun Oct 18 2026 18:54:35 ยังแจ้งหมดเขต และส่งจากหน้าเว็บได้ 409 (ใช้เวลา server)
+   ✓ ST-03 ขั้น 5: ฐานข้อมูล: สถานะ DRAFT · Email ถึงนักศึกษา 0 ฉบับ
+ST-03 ผ่านครบ 5 ขั้น
+
+ตรวจตามลูกศรใน Sequence Diagram (ST-01)
+   ✓ Student → Frontend: Login
+   ✓ Frontend → Controller: POST /api/auth/login
+   ✓ Service → Repository → PostgreSQL: SELECT user
+   ✓ Frontend → Controller: POST /api/requests, PUT /api/requests/{id}/form
+   ✓ Repository → PostgreSQL: INSERT request
+   ✓ Frontend → Controller: POST /api/requests/{id}/documents
+   ✓ Controller → PDF Storage: Store PDF
+   ✓ Repository → PostgreSQL: INSERT document
+   ✓ Service → PostgreSQL: Update request status
+   ✓ Service → Email: Send notification
+
+สรุป: ทั้งหมด 4 scenario · ผ่าน 4 · ไม่ผ่าน 0

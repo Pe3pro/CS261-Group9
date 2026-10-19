@@ -1,0 +1,15 @@
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 17.01 s -- in com.example.demo.integration.RequestApiDaoIntegrationTest
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+[RequestApiDaoIntegrationTest] tests=10 failures=0 errors=0 time=17.013s timestamp=None
+  PASS  storageFailure  (1.203s)
+  PASS  submitOneSecondLate  (0.275s)
+  PASS  staffSeesSubmittedRequest  (0.343s)
+  PASS  submitExactlyAtDeadline  (0.316s)
+  PASS  resubmitAfterRejected  (0.37s)
+  PASS  duplicateRequest  (0.186s)
+  PASS  concurrentSubmit  (0.209s)
+  PASS  fullSubmitFlow  (0.196s)
+  PASS  submitWithoutPdf  (0.192s)
+  PASS  submitAfterF2Deadline  (0.213s)
