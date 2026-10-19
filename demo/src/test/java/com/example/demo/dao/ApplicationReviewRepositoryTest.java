@@ -37,12 +37,18 @@ class ApplicationReviewRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        early = submitted(1L, LocalDateTime.of(2026, 10, 15, 10, 24));
-        late = submitted(2L, LocalDateTime.of(2026, 10, 16, 9, 15));
-        underReview = submitted(3L, LocalDateTime.of(2026, 10, 14, 8, 0));
+        // U3 เพิ่ม Foreign Key applications.student_id → students.id จึงต้องมีนักศึกษาจริงก่อนบันทึกคำร้อง
+        Long[] ids = new Long[4];
+        for (int i = 0; i < ids.length; i++) {
+            ids[i] = students.save(new Student(900L + i, "660965090" + i, "วิทยาศาสตร์และเทคโนโลยี",
+                    "วิทยาการคอมพิวเตอร์", 3.0)).getId();
+        }
+        early = submitted(ids[0], LocalDateTime.of(2026, 10, 15, 10, 24));
+        late = submitted(ids[1], LocalDateTime.of(2026, 10, 16, 9, 15));
+        underReview = submitted(ids[2], LocalDateTime.of(2026, 10, 14, 8, 0));
         underReview.changeStatus(ApplicationStatus.UNDER_REVIEW);
         underReview = applications.save(underReview);
-        applications.save(new Application(4L, FORM_ID, ApplicationStatus.DRAFT));
+        applications.save(new Application(ids[3], FORM_ID, ApplicationStatus.DRAFT));
     }
 
     private Application submitted(Long studentId, LocalDateTime at) {

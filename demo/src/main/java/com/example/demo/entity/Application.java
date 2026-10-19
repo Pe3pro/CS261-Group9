@@ -6,9 +6,13 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -26,6 +30,12 @@ public class Application {
     /** อ้างอิง STUDENTS.id */
     @Column(name = "student_id", nullable = false)
     private Long studentId;
+
+    /** U3: ใช้สร้าง Foreign Key applications.student_id → students.id เท่านั้น (อ่านอย่างเดียว ไม่ใช้บันทึก) */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "student_id", insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_applications_student"))
+    private Student student;
 
     @Column(name = "form_template_id", nullable = false)
     private Long formTemplateId;
@@ -72,6 +82,11 @@ public class Application {
     public void submit(LocalDateTime now) {
         this.status = ApplicationStatus.SUBMITTED;
         this.submittedAt = now;
+    }
+
+    /** U3: บันทึกว่าคำร้องถูกแก้ไข (เช่น แก้คำตอบในแบบฟอร์ม) */
+    public void markUpdated(LocalDateTime now) {
+        this.updatedAt = now;
     }
 
     public void changeStatus(ApplicationStatus newStatus) {

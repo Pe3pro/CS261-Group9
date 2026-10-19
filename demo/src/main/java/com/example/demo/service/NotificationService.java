@@ -27,13 +27,15 @@ public class NotificationService {
     private final UserRepository userRepository;
     private final StudentRepository studentRepository;
     private final AccessGuard guard;
+    private final EmailNotifier emailNotifier;
 
     public NotificationService(NotificationRepository notificationRepository, UserRepository userRepository,
-            StudentRepository studentRepository, AccessGuard guard) {
+            StudentRepository studentRepository, AccessGuard guard, EmailNotifier emailNotifier) {
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
         this.studentRepository = studentRepository;
         this.guard = guard;
+        this.emailNotifier = emailNotifier;
     }
 
     /** เรียกหลังบันทึกผลการพิจารณา เพื่อแจ้งคนที่ต้องทำต่อ */
@@ -84,7 +86,14 @@ public class NotificationService {
     private void notifyStudent(Application app, String title, String message, NotificationType type) {
         studentRepository.findById(app.getStudentId())
                 .map(Student::getUserId)
-                .ifPresent(studentUserId -> save(studentUserId, title, message, type, app));
+                .ifPresent(studentUserId -> {
+                    save(studentUserId, title, message, type, app);
+                    // U3: แจ้งนักศึกษาทาง Email ด้วย (Sequence Diagram: Service → Email)
+                    userRepository.findById(studentUserId)
+                            .filter(u -> u.getEmail() != null && !u.getEmail().isBlank())
+                            .ifPresent(u -> emailNotifier.send(u.getEmail(), title,
+                                    "คำร้องเลขที่ " + app.getId() + ": " + message));
+                });
     }
 
     private void save(Long userId, String title, String message, NotificationType type, Application app) {

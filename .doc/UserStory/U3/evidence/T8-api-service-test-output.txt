@@ -1,0 +1,36 @@
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.586 s -- in com.example.demo.service.DocumentServiceTest
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.596 s -- in com.example.demo.service.RequestServiceTest
+[INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.795 s -- in com.example.demo.controller.RequestControllerTest
+[INFO] Tests run: 25, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+[RequestControllerTest] tests=13 failures=0 errors=0 time=2.795s timestamp=None
+  PASS  createByNotEligibleStudent  (0.183s)
+  PASS  submitUnknownId  (0.028s)
+  PASS  createDuplicate  (0.007s)
+  PASS  uploadInvalidFile  (0.044s)
+  PASS  submitAfterDeadline  (0.012s)
+  PASS  getMine  (0.038s)
+  PASS  createByEligibleStudent  (0.012s)
+  PASS  createWithoutLogin  (0.01s)
+  PASS  submitComplete  (0.011s)
+  PASS  saveInvalidForm  (0.031s)
+  PASS  saveValidForm  (0.013s)
+  PASS  uploadPdf  (0.009s)
+  PASS  openOthersRequest  (0.009s)
+
+[RequestServiceTest] tests=9 failures=0 errors=0 time=0.596s timestamp=None
+  PASS  createAfterRejected  (0.446s)
+  PASS  rejectIncompleteSubmit  (0.019s)
+  PASS  createNewRequest  (0.009s)
+  PASS  submitComplete  (0.016s)
+  PASS  rejectDraftToApproved  (0.013s)
+  PASS  rejectAfterDeadline  (0.007s)
+  PASS  resubmitAfterCorrection  (0.015s)
+  PASS  rejectEditAfterSubmit  (0.009s)
+  PASS  rejectSecondRequest  (0.006s)
+
+[DocumentServiceTest] tests=3 failures=0 errors=0 time=1.586s timestamp=None
+  PASS  rejectFakePdf  (1.498s)
+  PASS  acceptRealPdf  (0.027s)
+  PASS  rejectWrongTypeOrSize  (0.022s)
