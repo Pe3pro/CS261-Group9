@@ -1,3 +1,5 @@
 .DS_Store
 target/
 demo/bin/
+node_modules/
+.env

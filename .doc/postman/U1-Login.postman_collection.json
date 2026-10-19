@@ -1,0 +1,381 @@
+{
+  "info": {
+    "_postman_id": "44539589-8a8b-477e-ba1e-f976ae50d809",
+    "name": "CS261 U1 Login",
+    "description": "U1:T8 ทดสอบ POST /api/auth/login\n\nก่อนรัน: docker compose up -d --build และสร้าง Environment ที่มี tu_username, tu_password (type secret)\nห้าม export Environment และห้ามบันทึก response ที่มีข้อมูลส่วนตัวไว้ใน Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "PM-L01 บัญชีทดลอง staff01 (STAFF) → 200",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const r = pm.response.json();",
+              "pm.test('role = STAFF', () => pm.expect(r.role).to.eql('STAFF'));",
+              "pm.test('มี accessToken, tokenType Bearer, userId, fullName, expiresAt', () => {",
+              "  pm.expect(r.accessToken).to.be.a('string').and.not.empty;",
+              "  pm.expect(r.tokenType).to.eql('Bearer');",
+              "  pm.expect(r.userId).to.be.a('number');",
+              "  pm.expect(r.fullName).to.be.a('string').and.not.empty;",
+              "  pm.expect(r.expiresAt).to.exist;",
+              "});",
+              "pm.test('ไม่ส่ง password กลับมา', () => pm.expect(r).to.not.have.property('password'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"staff01\",\n  \"password\": \"1234\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "description": "บัญชีทดลองจาก DemoDataSeeder ไม่เรียก TU REST API"
+      },
+      "response": []
+    },
+    {
+      "name": "PM-L02 บัญชีทดลอง advisor01 (ADVISOR) → 200",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const r = pm.response.json();",
+              "pm.test('role = ADVISOR', () => pm.expect(r.role).to.eql('ADVISOR'));",
+              "pm.test('มี accessToken, tokenType Bearer, userId, fullName, expiresAt', () => {",
+              "  pm.expect(r.accessToken).to.be.a('string').and.not.empty;",
+              "  pm.expect(r.tokenType).to.eql('Bearer');",
+              "  pm.expect(r.userId).to.be.a('number');",
+              "  pm.expect(r.fullName).to.be.a('string').and.not.empty;",
+              "  pm.expect(r.expiresAt).to.exist;",
+              "});",
+              "pm.test('ไม่ส่ง password กลับมา', () => pm.expect(r).to.not.have.property('password'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"advisor01\",\n  \"password\": \"1234\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "description": ""
+      },
+      "response": []
+    },
+    {
+      "name": "PM-L03 บัญชีทดลอง 6609650001 (STUDENT) → 200",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const r = pm.response.json();",
+              "pm.test('role = STUDENT', () => pm.expect(r.role).to.eql('STUDENT'));",
+              "pm.test('มี accessToken, tokenType Bearer, userId, fullName, expiresAt', () => {",
+              "  pm.expect(r.accessToken).to.be.a('string').and.not.empty;",
+              "  pm.expect(r.tokenType).to.eql('Bearer');",
+              "  pm.expect(r.userId).to.be.a('number');",
+              "  pm.expect(r.fullName).to.be.a('string').and.not.empty;",
+              "  pm.expect(r.expiresAt).to.exist;",
+              "});",
+              "pm.test('ไม่ส่ง password กลับมา', () => pm.expect(r).to.not.have.property('password'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"6609650001\",\n  \"password\": \"1234\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "description": ""
+      },
+      "response": []
+    },
+    {
+      "name": "PM-L04 บัญชี มธ. จริง → 200",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const r = pm.response.json();",
+              "pm.test('มี role', () => pm.expect(r.role).to.be.a('string'));",
+              "pm.test('มี accessToken, tokenType Bearer, userId, fullName, expiresAt', () => {",
+              "  pm.expect(r.accessToken).to.be.a('string').and.not.empty;",
+              "  pm.expect(r.tokenType).to.eql('Bearer');",
+              "  pm.expect(r.userId).to.be.a('number');",
+              "  pm.expect(r.fullName).to.be.a('string').and.not.empty;",
+              "  pm.expect(r.expiresAt).to.exist;",
+              "});",
+              "pm.test('ไม่ส่ง password กลับมา', () => pm.expect(r).to.not.have.property('password'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{tu_username}}\",\n  \"password\": \"{{tu_password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "description": "ใส่ tu_username / tu_password ใน Postman Environment (type secret) ห้ามใส่ใน Collection และห้าม export Environment · ต้องตั้ง TU_API_KEY ใน .env"
+      },
+      "response": []
+    },
+    {
+      "name": "PM-L05 รหัสผ่านผิด → 401 INVALID_CREDENTIALS",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 401', () => pm.response.to.have.status(401));",
+              "const r = pm.response.json();",
+              "pm.test('code = INVALID_CREDENTIALS', () => pm.expect(r.code).to.eql('INVALID_CREDENTIALS'));",
+              "pm.test('มี message ภาษาไทยให้หน้าเว็บแสดง', () => pm.expect(r.message).to.be.a('string').and.not.empty);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{tu_username}}\",\n  \"password\": \"wrong-password-test\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "description": "ใช้ username จริงกับรหัสผิด ยิงครั้งเดียวพอ เพื่อไม่ให้บัญชีถูกล็อก"
+      },
+      "response": []
+    },
+    {
+      "name": "PM-L06 ไม่กรอก Username / Password → 400 VALIDATION_ERROR",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));",
+              "const r = pm.response.json();",
+              "pm.test('code = VALIDATION_ERROR', () => pm.expect(r.code).to.eql('VALIDATION_ERROR'));",
+              "pm.test('มี message ภาษาไทยให้หน้าเว็บแสดง', () => pm.expect(r.message).to.be.a('string').and.not.empty);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"\",\n  \"password\": \"\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "description": ""
+      },
+      "response": []
+    },
+    {
+      "name": "PM-L07 body ไม่ใช่ JSON → 400 VALIDATION_ERROR",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));",
+              "const r = pm.response.json();",
+              "pm.test('code = VALIDATION_ERROR', () => pm.expect(r.code).to.eql('VALIDATION_ERROR'));",
+              "pm.test('มี message ภาษาไทยให้หน้าเว็บแสดง', () => pm.expect(r.message).to.be.a('string').and.not.empty);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "username=6609650001",
+          "options": {
+            "raw": {
+              "language": "text"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "description": ""
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    }
+  ]
+}
