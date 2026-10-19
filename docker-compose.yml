@@ -6,7 +6,7 @@
       MYSQL_ROOT_PASSWORD: root1234
       MYSQL_DATABASE: cs261db
     ports:
-      - "3307:3306"
+      - "3306:3306"
     volumes:
       - db-data:/var/lib/mysql
     healthcheck:
