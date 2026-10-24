@@ -1,5 +1,7 @@
 package com.example.demo.service;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -74,6 +76,37 @@ public class NotificationService {
                     "ใบสมัครฝึกสหกิจศึกษาของคุณไม่ได้รับการอนุมัติ." + reason,
                     NotificationType.APPLICATION_REJECTED);
         }
+    }
+
+    /**
+     * U5: แจ้งเจ้าหน้าที่ทุกคน (ที่ใช้งานอยู่) เมื่อมีคำร้องใหม่ หรือคำร้องที่แก้แล้วส่งกลับมา
+     * แจ้งเฉพาะในระบบ ไม่ส่ง Email เพื่อไม่ให้กล่องจดหมายเจ้าหน้าที่เต็ม
+     */
+    public void notifyStaffSubmitted(Application app, boolean resubmitted) {
+        String title = resubmitted ? "มีคำร้องที่แก้ไขแล้วส่งกลับมา" : "มีคำร้องใหม่รอตรวจ";
+        String message = resubmitted
+                ? "คำร้องเลขที่ " + app.getId() + " ถูกแก้ไขตามที่ส่งกลับและส่งเข้ามาใหม่แล้ว"
+                : "คำร้องเลขที่ " + app.getId() + " ถูกส่งเข้ามาในระบบ รอเจ้าหน้าที่ตรวจสอบ";
+        for (User staff : userRepository.findByRoleAndActiveTrue(Role.STAFF)) {
+            save(staff.getId(), title, message, NotificationType.APPLICATION_SUBMITTED, app);
+        }
+    }
+
+    /**
+     * U5: เตือนนักศึกษาที่ถูกตีกลับแต่ยังไม่ส่งใหม่ ว่าแบบฟอร์มใกล้หมดเขต
+     * เตือนไม่เกินวันละครั้งต่อคำร้อง (ถ้าวันนี้เตือนไปแล้วจะข้าม)
+     * @return true ถ้าสร้างการแจ้งเตือนใหม่
+     */
+    public boolean remindCorrection(Application app, LocalDateTime deadline, LocalDateTime now) {
+        if (notificationRepository.existsByApplicationIdAndTypeAndCreatedAtAfter(
+                app.getId(), NotificationType.CORRECTION_REMINDER, now.toLocalDate().atStartOfDay())) {
+            return false;
+        }
+        String when = deadline.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+        notifyStudent(app, "ใกล้หมดเขตส่งคำร้องที่ต้องแก้ไข",
+                "คำร้องของคุณถูกส่งกลับให้แก้ไขและยังไม่ได้ส่งใหม่ กรุณาส่งภายใน " + when + " น.",
+                NotificationType.CORRECTION_REMINDER);
+        return true;
     }
 
     @Transactional(readOnly = true)

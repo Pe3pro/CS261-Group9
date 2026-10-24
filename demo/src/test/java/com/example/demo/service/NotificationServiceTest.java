@@ -10,6 +10,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,6 +28,7 @@ import com.example.demo.entity.ApplicationStatus;
 import com.example.demo.entity.ApprovalDecision;
 import com.example.demo.entity.ApprovalLevel;
 import com.example.demo.entity.Notification;
+import com.example.demo.entity.NotificationType;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.Student;
 import com.example.demo.entity.User;
@@ -120,4 +122,53 @@ class NotificationServiceTest {
                 .doesNotThrowAnyException();
         assertThat(notifiedUserIds()).containsExactly(30L);
     }
+
+    @Test
+    @DisplayName("NT-05 มีคำร้องใหม่: แจ้งเจ้าหน้าที่ทุกคนที่ใช้งานอยู่ ชนิด APPLICATION_SUBMITTED (ไม่ส่ง Email)")
+    void notifyAllStaffOnSubmit() {
+        when(users.findByRoleAndActiveTrue(Role.STAFF)).thenReturn(List.of(
+                user(1L, Role.STAFF, "staff01@tu.ac.th"), user(5L, Role.STAFF, "staff02@tu.ac.th")));
+
+        service.notifyStaffSubmitted(app, false);
+
+        ArgumentCaptor<Notification> saved = ArgumentCaptor.forClass(Notification.class);
+        verify(notifications, org.mockito.Mockito.times(2)).save(saved.capture());
+        assertThat(saved.getAllValues()).extracting(Notification::getUserId).containsExactly(1L, 5L);
+        assertThat(saved.getAllValues()).extracting(Notification::getType)
+                .containsOnly(NotificationType.APPLICATION_SUBMITTED);
+        assertThat(saved.getValue().getTitle()).isEqualTo("มีคำร้องใหม่รอตรวจ");
+        verify(email, org.mockito.Mockito.never()).send(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("NT-06 คำร้องที่แก้แล้วส่งกลับมา: หัวข้อแจ้งเตือนบอกว่าเป็นฉบับแก้")
+    void notifyStaffOnResubmit() {
+        when(users.findByRoleAndActiveTrue(Role.STAFF)).thenReturn(List.of(user(1L, Role.STAFF, null)));
+
+        service.notifyStaffSubmitted(app, true);
+
+        ArgumentCaptor<Notification> saved = ArgumentCaptor.forClass(Notification.class);
+        verify(notifications).save(saved.capture());
+        assertThat(saved.getValue().getTitle()).isEqualTo("มีคำร้องที่แก้ไขแล้วส่งกลับมา");
+    }
+
+    @Test
+    @DisplayName("NT-07 เตือนนักศึกษาก่อนหมดเขต: วันนี้ยังไม่เคยเตือน → แจ้งในระบบ (บอกวันหมดเขต) · เตือนแล้ว → ข้าม")
+    void remindOncePerDay() {
+        studentWithAdvisor(2L);
+        LocalDateTime now = LocalDateTime.of(2026, 11, 29, 8, 0);
+        LocalDateTime deadline = LocalDateTime.of(2026, 11, 30, 23, 59);
+        when(notifications.existsByApplicationIdAndTypeAndCreatedAtAfter(50L, NotificationType.CORRECTION_REMINDER,
+                LocalDateTime.of(2026, 11, 29, 0, 0))).thenReturn(false, true);
+
+        assertThat(service.remindCorrection(app, deadline, now)).isTrue();
+        assertThat(service.remindCorrection(app, deadline, now)).isFalse();
+
+        ArgumentCaptor<Notification> saved = ArgumentCaptor.forClass(Notification.class);
+        verify(notifications).save(saved.capture());
+        assertThat(saved.getValue().getUserId()).isEqualTo(30L);
+        assertThat(saved.getValue().getType()).isEqualTo(NotificationType.CORRECTION_REMINDER);
+        assertThat(saved.getValue().getMessage()).contains("30/11/2026 23:59");
+    }
 }
+
