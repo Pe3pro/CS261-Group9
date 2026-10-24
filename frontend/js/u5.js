@@ -101,6 +101,29 @@
       }
    }
 
+   /* ขั้นตอนล่าสุดที่นักศึกษาทำถึง (1 = ตรวจสอบคุณสมบัติ, 2 = ยื่นคำร้อง, 3 = จับคู่บริษัท) */
+   function studentUnlocked() {
+      try {
+         const n = Number(JSON.parse(sessionStorage.getItem('coop-state') || '{}').unlocked);
+         return Math.min(Math.max(Number.isFinite(n) ? n : 1, 1), 3);
+      } catch (e) { return 1; }
+   }
+
+   /* อ่านคำร้องของนักศึกษาจากระบบ: มีคำร้อง → ผ่านขั้น 1 · ยื่นแล้ว → ผ่านครบ (เก็บลง coop-state ให้หน้าอื่นใช้ด้วย) */
+   async function syncStudentProgress() {
+      const r = await api('/api/requests/me');
+      if (!r.ok || !Array.isArray(r.data) || !r.data.length) return false;
+      const sent = r.data.some(x => ['SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'NEED_CORRECTION'].includes(x.status));
+      const level = sent ? 3 : 2;
+      try {
+         const st = JSON.parse(sessionStorage.getItem('coop-state') || '{}');
+         if ((Number(st.unlocked) || 1) >= level) return false;
+         st.unlocked = level;
+         sessionStorage.setItem('coop-state', JSON.stringify(st));
+         return true;
+      } catch (e) { return false; }
+   }
+
    /* ---------- ส่วนหัว เมนู และการเลือกผู้ใช้ทดลอง ---------- */
    function initShell(page) {
       $('#who').textContent = user ? ROLE_TH[user.role] + ' ' + user.name : (loginName() || 'ยังไม่ได้เข้าสู่ระบบ');
@@ -110,8 +133,18 @@
       if (user?.role === 'ADVISOR') links = [['staff-review.html', 'พิจารณาใบสมัคร', 'review']];
       if (user?.role === 'STUDENT') links = [['check.html', 'ตรวจสอบคุณสมบัติ', 'check'], ['submit.html', 'ยื่นคำร้อง', 'submit'], ['ranking.html', 'จับคู่บริษัท', 'ranking']];
       if (user) links.push(['notifications.html', 'การแจ้งเตือน', 'notifications']);
-      $('#u5nav').innerHTML = links.map(([href, label, p]) =>
-         `<a href="${href}"${p === page ? ' class="on" aria-current="page"' : ''}>${label}</a>`).join('');
+      /* นักศึกษา: ขั้นที่ยังทำไม่ถึงกดไม่ได้และแสดงจางๆ (ใช้ coop-state.unlocked เดียวกับหน้าตรวจสอบคุณสมบัติ) */
+      const STEP = { check: 1, submit: 2, ranking: 3 };
+      const renderNav = () => {
+         const unlocked = user?.role === 'STUDENT' ? studentUnlocked() : 3;
+         $('#u5nav').innerHTML = links.map(([href, label, p]) => {
+            if (STEP[p] > unlocked) return `<a href="${href}" class="disabled" aria-disabled="true" tabindex="-1">${label}</a>`;
+            return `<a href="${href}"${p === page ? ' class="on" aria-current="page"' : ''}>${label}</a>`;
+         }).join('');
+      };
+      renderNav();
+      // ดูจากข้อมูลในระบบด้วยว่านักศึกษาทำถึงขั้นไหนแล้ว
+      if (user?.role === 'STUDENT') syncStudentProgress().then(changed => { if (changed) renderNav(); });
       const bar = $('#demoBar');
       if (bar && demo()) {
          bar.innerHTML = 'โหมดข้อมูลตัวอย่าง: หน้าเว็บนี้ยังไม่ได้ต่อ backend ข้อมูลจะหายเมื่อปิดแท็บ <button type="button" id="demoOff">ปิดโหมดตัวอย่าง</button>';
