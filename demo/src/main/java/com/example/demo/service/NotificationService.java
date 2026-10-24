@@ -2,8 +2,12 @@ package com.example.demo.service;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.example.demo.dao.NotificationRepository;
 import com.example.demo.dao.StudentRepository;
@@ -22,6 +26,8 @@ import com.example.demo.entity.User;
 @Service
 @Transactional
 public class NotificationService {
+
+    private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
@@ -42,11 +48,16 @@ public class NotificationService {
     public void notifyAfterDecision(Application app, ApprovalLevel level, ApprovalDecision decision, String comment) {
         String reason = (comment == null || comment.isBlank()) ? "" : " เหตุผล: " + comment.trim();
         if (decision == ApprovalDecision.APPROVE && level == ApprovalLevel.STAFF) {
-            for (User advisor : userRepository.findByRoleAndActiveTrue(Role.ADVISOR)) {
-                save(advisor.getId(), "มีใบสมัครรอพิจารณา",
-                        "ใบสมัครเลขที่ " + app.getId() + " ผ่านการตรวจของเจ้าหน้าที่แล้ว รออาจารย์พิจารณา",
-                        NotificationType.APPLICATION_FORWARDED, app);
-            }
+            // แจ้งเฉพาะอาจารย์ที่ปรึกษาของนักศึกษาเจ้าของคำร้อง ไม่ใช่อาจารย์ทุกคน
+            studentRepository.findById(app.getStudentId())
+                    .map(Student::getAdvisorId)
+                    .flatMap(userRepository::findById)
+                    .filter(u -> u.getRole() == Role.ADVISOR && !Boolean.FALSE.equals(u.getActive()))
+                    .ifPresentOrElse(
+                            advisor -> save(advisor.getId(), "มีใบสมัครรอพิจารณา",
+                                    "ใบสมัครเลขที่ " + app.getId() + " ผ่านการตรวจของเจ้าหน้าที่แล้ว รออาจารย์พิจารณา",
+                                    NotificationType.APPLICATION_FORWARDED, app),
+                            () -> log.warn("ใบสมัครเลขที่ {} ไม่มีอาจารย์ที่ปรึกษาที่ใช้งานอยู่ จึงไม่ได้แจ้งอาจารย์", app.getId()));
             notifyStudent(app, "เจ้าหน้าที่ตรวจใบสมัครแล้ว",
                     "ใบสมัครของคุณถูกส่งต่อให้อาจารย์พิจารณา",
                     NotificationType.APPLICATION_FORWARDED);
@@ -91,9 +102,33 @@ public class NotificationService {
                     // U3: แจ้งนักศึกษาทาง Email ด้วย (Sequence Diagram: Service → Email)
                     userRepository.findById(studentUserId)
                             .filter(u -> u.getEmail() != null && !u.getEmail().isBlank())
-                            .ifPresent(u -> emailNotifier.send(u.getEmail(), title,
+                            .ifPresent(u -> sendEmailAfterCommit(u.getEmail(), title,
                                     "คำร้องเลขที่ " + app.getId() + ": " + message));
                 });
+    }
+
+    /**
+     * ส่ง Email หลังบันทึกผลการพิจารณาลงฐานข้อมูลสำเร็จแล้วเท่านั้น
+     * ถ้าส่งไม่สำเร็จ ผลการพิจารณาและแจ้งเตือนในระบบยังอยู่ครบ และบันทึกความล้มเหลวไว้ใน log
+     */
+    void sendEmailAfterCommit(String to, String subject, String body) {
+        Runnable send = () -> {
+            try {
+                emailNotifier.send(to, subject, body);
+            } catch (RuntimeException e) {
+                log.warn("[EMAIL-FAILED] to={} subject={} reason={}", to, subject, e.getMessage());
+            }
+        };
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    send.run();
+                }
+            });
+        } else {
+            send.run();
+        }
     }
 
     private void save(Long userId, String title, String message, NotificationType type, Application app) {

@@ -21,6 +21,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.example.demo.dao.ApplicationRepository;
 import com.example.demo.dao.ApprovalRepository;
+import com.example.demo.dao.StudentRepository;
 import com.example.demo.dto.ApprovalRequest;
 import com.example.demo.dto.ApprovalResponse;
 import com.example.demo.entity.Application;
@@ -29,6 +30,7 @@ import com.example.demo.entity.Approval;
 import com.example.demo.entity.ApprovalDecision;
 import com.example.demo.entity.ApprovalLevel;
 import com.example.demo.entity.Role;
+import com.example.demo.entity.Student;
 import com.example.demo.entity.User;
 
 /** U5:T8 Unit test logic การพิจารณาคำร้อง (ApprovalService) โดยไม่ต่อฐานข้อมูล */
@@ -39,22 +41,28 @@ class ApprovalServiceTest {
 
     private ApplicationRepository applications;
     private ApprovalRepository approvals;
+    private StudentRepository students;
     private NotificationService notifications;
     private AccessGuard guard;
     private ApprovalService service;
 
     private final User staff = user(1L, "สมศรี ทำงานดี", Role.STAFF);
     private final User advisor = user(2L, "อ.ดร.วิชัย สอนดี", Role.ADVISOR);
+    private final User otherAdvisor = user(4L, "อ.ดร.สมปอง คนอื่น", Role.ADVISOR);
 
     @BeforeEach
     void setUp() {
         applications = mock(ApplicationRepository.class);
         approvals = mock(ApprovalRepository.class);
+        students = mock(StudentRepository.class);
         notifications = mock(NotificationService.class);
         guard = mock(AccessGuard.class);
-        service = new ApprovalService(applications, approvals, notifications, guard, CLOCK);
+        service = new ApprovalService(applications, approvals, students, notifications, guard, CLOCK);
         when(guard.require(1L, Role.STAFF, Role.ADVISOR)).thenReturn(staff);
         when(guard.require(2L, Role.STAFF, Role.ADVISOR)).thenReturn(advisor);
+        when(guard.require(4L, Role.STAFF, Role.ADVISOR)).thenReturn(otherAdvisor);
+        // นักศึกษา id 20 (เจ้าของคำร้อง) มี advisor id 2 เป็นอาจารย์ที่ปรึกษา
+        when(students.findById(20L)).thenReturn(Optional.of(student(20L, 2L)));
         when(approvals.save(any(Approval.class))).thenAnswer(inv -> {
             Approval a = inv.getArgument(0);
             ReflectionTestUtils.setField(a, "id", 900L);
@@ -66,6 +74,13 @@ class ApprovalServiceTest {
         User u = new User("u" + id, name, null, role);
         ReflectionTestUtils.setField(u, "id", id);
         return u;
+    }
+
+    private static Student student(Long id, Long advisorId) {
+        Student s = new Student(100L, "6609650001", null, null, null);
+        ReflectionTestUtils.setField(s, "id", id);
+        s.setAdvisorId(advisorId);
+        return s;
     }
 
     private Application application(ApplicationStatus status) {
@@ -179,5 +194,39 @@ class ApprovalServiceTest {
 
         assertThatThrownBy(() -> service.decide(50L, 3L, new ApprovalRequest(ApprovalDecision.APPROVE, null)))
                 .isInstanceOf(ApiException.class).extracting("status").isEqualTo(403);
+    }
+
+    @Test
+    @DisplayName("SV-AP11 อาจารย์ที่ไม่ใช่อาจารย์ที่ปรึกษาของนักศึกษา ตัดสินไม่ได้ ได้ 403 และไม่บันทึก")
+    void otherAdvisorForbidden() {
+        Application app = application(ApplicationStatus.UNDER_REVIEW);
+
+        assertThatThrownBy(() -> service.decide(50L, 4L, new ApprovalRequest(ApprovalDecision.APPROVE, null)))
+                .isInstanceOf(ApiException.class).extracting("status").isEqualTo(403);
+        assertThat(app.getStatus()).isEqualTo(ApplicationStatus.UNDER_REVIEW);
+        verify(approvals, never()).save(any());
+        verify(notifications, never()).notifyAfterDecision(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("SV-AP12 นักศึกษายังไม่มีอาจารย์ที่ปรึกษา อาจารย์คนใดก็ตัดสินไม่ได้ ได้ 403")
+    void studentWithoutAdvisor() {
+        when(students.findById(20L)).thenReturn(Optional.of(student(20L, null)));
+        application(ApplicationStatus.UNDER_REVIEW);
+
+        assertThatThrownBy(() -> service.decide(50L, 2L, new ApprovalRequest(ApprovalDecision.APPROVE, null)))
+                .isInstanceOf(ApiException.class).extracting("status").isEqualTo(403);
+        verify(approvals, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("SV-AP13 เจ้าหน้าที่ตัดสินได้ทุกคำร้อง ไม่ขึ้นกับอาจารย์ที่ปรึกษา")
+    void staffNotLimitedByAdvisor() {
+        when(students.findById(20L)).thenReturn(Optional.of(student(20L, null)));
+        application(ApplicationStatus.SUBMITTED);
+
+        ApprovalResponse res = service.decide(50L, 1L, new ApprovalRequest(ApprovalDecision.APPROVE, null));
+
+        assertThat(res.applicationStatus()).isEqualTo(ApplicationStatus.UNDER_REVIEW);
     }
 }

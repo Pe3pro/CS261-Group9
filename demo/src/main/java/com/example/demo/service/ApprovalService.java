@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.demo.dao.ApplicationRepository;
 import com.example.demo.dao.ApprovalRepository;
+import com.example.demo.dao.StudentRepository;
 import com.example.demo.dto.ApprovalRequest;
 import com.example.demo.dto.ApprovalResponse;
 import com.example.demo.entity.Application;
@@ -16,11 +17,13 @@ import com.example.demo.entity.Approval;
 import com.example.demo.entity.ApprovalDecision;
 import com.example.demo.entity.ApprovalLevel;
 import com.example.demo.entity.Role;
+import com.example.demo.entity.Student;
 import com.example.demo.entity.User;
 
 /**
  * U5: เจ้าหน้าที่ / อาจารย์ พิจารณาคำร้อง
  * เจ้าหน้าที่ตัดสินได้เฉพาะคำร้อง SUBMITTED, อาจารย์ตัดสินได้เฉพาะคำร้อง UNDER_REVIEW
+ * ของนักศึกษาที่ตนเป็นอาจารย์ที่ปรึกษาเท่านั้น
  */
 @Service
 @Transactional
@@ -28,14 +31,17 @@ public class ApprovalService {
 
     private final ApplicationRepository applicationRepository;
     private final ApprovalRepository approvalRepository;
+    private final StudentRepository studentRepository;
     private final NotificationService notificationService;
     private final AccessGuard guard;
     private final Clock clock;
 
     public ApprovalService(ApplicationRepository applicationRepository, ApprovalRepository approvalRepository,
-            NotificationService notificationService, AccessGuard guard, Clock clock) {
+            StudentRepository studentRepository, NotificationService notificationService, AccessGuard guard,
+            Clock clock) {
         this.applicationRepository = applicationRepository;
         this.approvalRepository = approvalRepository;
+        this.studentRepository = studentRepository;
         this.notificationService = notificationService;
         this.guard = guard;
         this.clock = clock;
@@ -64,6 +70,9 @@ public class ApprovalService {
             throw ApiException.conflict("คำร้องนี้ไม่ได้อยู่ในขั้นที่คุณพิจารณาได้ (สถานะปัจจุบัน: "
                     + app.getStatus() + ")");
         }
+        if (level == ApprovalLevel.ADVISOR) {
+            requireOwnStudent(approver, app);
+        }
 
         LocalDateTime now = LocalDateTime.now(clock);
         Approval approval = approvalRepository.save(
@@ -75,6 +84,15 @@ public class ApprovalService {
 
         return new ApprovalResponse(approval.getId(), app.getId(), level, decision, approver.getFullName(),
                 comment, now, next);
+    }
+
+    /** อาจารย์พิจารณาได้เฉพาะคำร้องของนักศึกษาที่ตนเป็นอาจารย์ที่ปรึกษา */
+    private void requireOwnStudent(User advisor, Application app) {
+        Long advisorId = studentRepository.findById(app.getStudentId())
+                .map(Student::getAdvisorId).orElse(null);
+        if (advisorId == null || !advisorId.equals(advisor.getId())) {
+            throw new ApiException(403, "FORBIDDEN", "คุณไม่ได้เป็นอาจารย์ที่ปรึกษาของนักศึกษาเจ้าของคำร้องนี้");
+        }
     }
 
     static ApplicationStatus nextStatus(ApprovalLevel level, ApprovalDecision decision) {
