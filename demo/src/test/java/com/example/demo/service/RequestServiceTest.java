@@ -37,6 +37,7 @@ import com.example.demo.dto.RequestResponse;
 import com.example.demo.entity.Application;
 import com.example.demo.entity.ApplicationStatus;
 import com.example.demo.entity.Document;
+import com.example.demo.entity.EligibilityRecord;
 import com.example.demo.entity.FieldType;
 import com.example.demo.entity.FormField;
 import com.example.demo.entity.FormResponse;
@@ -98,6 +99,9 @@ class RequestServiceTest {
         when(fields.findByFormTemplateIdOrderByDisplayOrderAsc(10L)).thenReturn(f1Fields);
         when(applications.save(any(Application.class))).thenAnswer(inv -> withId(inv.getArgument(0), 500L));
         when(applications.saveAndFlush(any(Application.class))).thenAnswer(inv -> inv.getArgument(0));
+        // U2: ผ่านการตรวจสอบคุณสมบัติแล้ว (ค่าเริ่มต้นของทุกเคส)
+        when(eligibility.findByStudentIdOrderByCheckedAtDesc(anyString())).thenReturn(List.of(
+                new EligibilityRecord("6609650001", true, "ผ่านคุณสมบัติ", LocalDateTime.of(2026, 10, 17, 10, 0))));
     }
 
     private RequestService service(Clock clock) {
@@ -270,5 +274,28 @@ class RequestServiceTest {
 
     private static FormField field(Long id, int order, String label, FieldType type) {
         return withId(new FormField(10L, label, type, true, order), id);
+    }
+
+    @Test
+    @DisplayName("ยังไม่เคยตรวจ U2 → ยื่นคำร้องไม่ได้ (403 NOT_ELIGIBLE)")
+    void rejectWhenNeverCheckedEligibility() {
+        when(eligibility.findByStudentIdOrderByCheckedAtDesc(anyString())).thenReturn(List.of());
+
+        assertThatThrownBy(() -> service(NOW).create(new RequestCreateRequest(10L), 3L))
+                .isInstanceOf(ApiException.class)
+                .extracting("status", "code").containsExactly(403, "NOT_ELIGIBLE");
+        verify(applications, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("ผลตรวจ U2 ล่าสุดไม่ผ่าน → ยื่นคำร้องไม่ได้ (403 NOT_ELIGIBLE)")
+    void rejectWhenLatestEligibilityFailed() {
+        when(eligibility.findByStudentIdOrderByCheckedAtDesc(anyString())).thenReturn(List.of(
+                new EligibilityRecord("6609650001", false, "ไม่ผ่านคุณสมบัติ", LocalDateTime.of(2026, 10, 17, 10, 0))));
+
+        assertThatThrownBy(() -> service(NOW).create(new RequestCreateRequest(10L), 3L))
+                .isInstanceOf(ApiException.class)
+                .extracting("status", "code").containsExactly(403, "NOT_ELIGIBLE");
+        verify(applications, never()).save(any());
     }
 }

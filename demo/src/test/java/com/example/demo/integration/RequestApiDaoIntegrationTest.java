@@ -52,6 +52,7 @@ import com.example.demo.dao.NotificationRepository;
 import com.example.demo.dao.StudentRepository;
 import com.example.demo.dao.UserRepository;
 import com.example.demo.entity.Application;
+import com.example.demo.entity.EligibilityRecord;
 import com.example.demo.entity.ApplicationStatus;
 import com.example.demo.entity.FieldType;
 import com.example.demo.entity.FormField;
@@ -145,6 +146,10 @@ class RequestApiDaoIntegrationTest {
         studentA = students.save(new Student(userA, "6609650001", "วิทยาศาสตร์และเทคโนโลยี", "วิทยาการคอมพิวเตอร์", 3.10)).getId();
         studentB = students.save(new Student(userB, "6609650002", "วิทยาศาสตร์และเทคโนโลยี", "วิทยาการคอมพิวเตอร์", 3.45)).getId();
         studentC = students.save(new Student(userC, "6609650003", "วิทยาศาสตร์และเทคโนโลยี", "วิทยาการคอมพิวเตอร์", 3.25)).getId();
+        // U2: นักศึกษาทั้งสามคนผ่านการตรวจสอบคุณสมบัติแล้ว (U3 ต้องผ่าน U2 ก่อน)
+        for (String sid : List.of("6609650001", "6609650002", "6609650003")) {
+            eligibility.save(new EligibilityRecord(sid, true, "ผ่านคุณสมบัติ", LocalDateTime.of(2026, 10, 17, 10, 0)));
+        }
 
         f1 = publishedForm("คำร้องขอฝึกสหกิจศึกษา 2/2569 (F1)", 1, LocalDateTime.of(2026, 11, 30, 23, 59, 59));
         f2 = publishedForm("คำร้องขอฝึกสหกิจศึกษา 1/2569 (F2)", 2, LocalDateTime.of(2026, 10, 1, 23, 59, 59));
