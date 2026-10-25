@@ -937,6 +937,7 @@ function initSubmit() {
       fail1: 'คำร้องไม่ผ่านการตรวจสอบ 1 รายการ กรุณาแก้ไขข้อมูล',
       duplicate: 'คุณมีคำร้องประเภทนี้ที่อยู่ระหว่างดำเนินการแล้ว',
       deadline: 'เกินระยะเวลาที่กำหนด ไม่สามารถยื่นคำร้องได้',
+      notEligible: 'คุณยังไม่ผ่านการตรวจสอบคุณสมบัติ ไม่สามารถยื่นคำร้องได้ กรุณาตรวจสอบคุณสมบัติก่อน',
       network: 'ไม่สามารถเชื่อมต่อระบบได้ กรุณาลองใหม่อีกครั้ง',
       login: 'กรุณาเข้าสู่ระบบใหม่อีกครั้ง'
    };
@@ -1113,6 +1114,7 @@ function initSubmit() {
       $('#sNext').hidden = !ok;
       $('#sRetry').hidden = !buttons.retry;
       $('#sEdit').hidden = !buttons.edit;
+      $('#sCheck').hidden = !buttons.check;
    }
 
    function backToForm(message) {
@@ -1132,6 +1134,10 @@ function initSubmit() {
       if (code === 'DEADLINE_PASSED') {
          locked = true;
          return result(false, MSG.deadline, true, 'แนบไฟล์แล้ว');
+      }
+      if (code === 'NOT_ELIGIBLE') {
+         lock(MSG.notEligible);
+         return result(false, MSG.notEligible, false, '-', { check: true });
       }
       if (code === 'DUPLICATE_REQUEST' || (res.status === 409 && code === 'INVALID_STATUS')) {
          locked = true;

@@ -68,7 +68,7 @@ class RequestServiceTest {
     private EmailNotifier email;
     private AccessGuard guard;
 
-    private final User userA = user(3L, "6609650001", "somchai@dome.tu.ac.th");
+    private final User userA = user(3L, "6609650001", "arizona@dome.tu.ac.th");
     private final Student studentA = student(1L, 3L, "6609650001");
     private FormTemplate f1;
     private List<FormField> f1Fields;
@@ -115,8 +115,8 @@ class RequestServiceTest {
         app.changeStatus(status);
         when(applications.findById(500L)).thenReturn(Optional.of(app));
         when(responses.findByApplicationId(500L)).thenReturn(List.of(
-                new FormResponse(500L, 101L, "สมชาย ใจดี"), new FormResponse(500L, 102L, "0812345678"),
-                new FormResponse(500L, 103L, "somchai@dome.tu.ac.th"), new FormResponse(500L, 104L, "99 ม.ธ. รังสิต")));
+                new FormResponse(500L, 101L, "A arizona"), new FormResponse(500L, 102L, "0812345678"),
+                new FormResponse(500L, 103L, "arizona@dome.tu.ac.th"), new FormResponse(500L, 104L, "99 ม.ธ. รังสิต")));
         when(documents.findByApplicationId(500L)).thenReturn(
                 List.of(new Document(500L, "transcript.pdf", "transcripts/a.pdf", 512_000L)));
         return app;
@@ -155,7 +155,7 @@ class RequestServiceTest {
         Application app = completeApplication(ApplicationStatus.DRAFT);
         // ก) ขาดเบอร์โทร
         when(responses.findByApplicationId(500L)).thenReturn(List.of(
-                new FormResponse(500L, 101L, "สมชาย ใจดี"), new FormResponse(500L, 103L, "somchai@dome.tu.ac.th"),
+                new FormResponse(500L, 101L, "A arizona"), new FormResponse(500L, 103L, "arizona@dome.tu.ac.th"),
                 new FormResponse(500L, 104L, "99 ม.ธ. รังสิต")));
         assertThatThrownBy(() -> service(NOW).submit(500L, 3L))
                 .isInstanceOf(FieldValidationException.class)
@@ -189,8 +189,8 @@ class RequestServiceTest {
     @Test
     @DisplayName("U3-SVC-05 แก้ไขคำร้องสถานะ SUBMITTED หรือ APPROVED: ปฏิเสธการแก้ไข (409)")
     void rejectEditAfterSubmit() {
-        FormAnswersRequest change = new FormAnswersRequest(Map.of("field_1", "สมชาย ใจดี", "field_2", "0899999999",
-                "field_3", "somchai@dome.tu.ac.th", "field_4", "99 ม.ธ. รังสิต"));
+        FormAnswersRequest change = new FormAnswersRequest(Map.of("field_1", "A arizona", "field_2", "0899999999",
+                "field_3", "arizona@dome.tu.ac.th", "field_4", "99 ม.ธ. รังสิต"));
         for (ApplicationStatus status : List.of(ApplicationStatus.SUBMITTED, ApplicationStatus.APPROVED)) {
             completeApplication(status);
             assertThatThrownBy(() -> service(NOW).saveAnswers(500L, change, 3L))
@@ -258,7 +258,7 @@ class RequestServiceTest {
     }
 
     private static User user(Long id, String username, String mail) {
-        return withId(new User(username, "สมชาย ใจดี", mail, Role.STUDENT), id);
+        return withId(new User(username, "A arizona", mail, Role.STUDENT), id);
     }
 
     private static Student student(Long id, Long userId, String code) {

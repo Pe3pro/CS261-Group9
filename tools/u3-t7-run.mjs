@@ -50,7 +50,7 @@ const FORM = {
 const PUBLISHED = { form: FORM, serverTime: '2026-10-20T10:00:00', deadlinePassed: false };
 const req = (status, extra = {}) => ({ id: 500, studentId: '6609650001', formTemplateId: 10, status, answers: {}, documents: [], ...extra });
 const ERR = (code, message) => ({ code, message });
-const PROFILE = { studentId: '6609650001', fullName: 'สมชาย ใจดี', email: 'somchai@dome.tu.ac.th',
+const PROFILE = { studentId: '6609650001', fullName: 'A arizona', email: 'arizona@dome.tu.ac.th',
    faculty: 'วิทยาศาสตร์และเทคโนโลยี', major: 'วิทยาการคอมพิวเตอร์', gpa: 3.1 };
 const OK_ROUTES = {
    'GET /api/students/me': [200, PROFILE],
@@ -101,9 +101,9 @@ async function open(browser, overrides = {}, state = {}) {
       cls: s => $(s).getAttribute('class'),
       set: (id, v) => $('#' + id).fill(v),
       fillAll: async () => {
-         await p.set('s_name', 'สมชาย ใจดี');
+         await p.set('s_name', 'A arizona');
          await p.set('s_tel', '0812345678');
-         await p.set('s_mail', 'somchai@dome.tu.ac.th');
+         await p.set('s_mail', 'arizona@dome.tu.ac.th');
          await p.set('s_addr', '99 ม.ธ. รังสิต');
       },
       attach: (name, buffer = PDF) => $('#s_tr').setInputFiles({ name, mimeType: 'application/pdf', buffer }),
@@ -163,10 +163,10 @@ test('UI-06', 'กรอกแต่ช่องว่าง → แจ้ง "�
    return 'แจ้ง "' + await p.text('#s_err') + '" (ตัดช่องว่างก่อนตรวจ) ไม่เรียก API';
 });
 
-test('UI-07', 'อีเมลผิดรูปแบบ (somchai@) → แจ้งอีเมลไม่ถูกต้อง ไม่ส่งคำร้อง', async b => {
+test('UI-07', 'อีเมลผิดรูปแบบ (arizona@) → แจ้งอีเมลไม่ถูกต้อง ไม่ส่งคำร้อง', async b => {
    const p = await open(b);
    await p.fillAll();
-   await p.set('s_mail', 'somchai@');
+   await p.set('s_mail', 'arizona@');
    await p.$('#btnSend').click();
    assert.equal(await p.text('#s_err'), 'รูปแบบอีเมลไม่ถูกต้อง');
    assert.equal(await p.$('#s_mail').getAttribute('aria-invalid'), 'true');
@@ -216,9 +216,9 @@ test('UI-11', 'กดแก้ไขข้อมูล → กลับหน้
    await p.$('#btnSend').click();
    await p.$('#sEdit').click();
    assert.equal(await p.visible('#vForm'), true);
-   assert.equal(await p.$('#s_name').inputValue(), 'สมชาย ใจดี');
+   assert.equal(await p.$('#s_name').inputValue(), 'A arizona');
    assert.equal(await p.$('#s_tel').inputValue(), '0812345678');
-   assert.equal(await p.$('#s_mail').inputValue(), 'somchai@dome.tu.ac.th');
+   assert.equal(await p.$('#s_mail').inputValue(), 'arizona@dome.tu.ac.th');
    assert.equal(await p.$('#s_addr').inputValue(), '99 ม.ธ. รังสิต');
    assert.equal(await p.$('.steps .st').first().getAttribute('class'), 'st cur');
    return 'กลับหน้ากรอกข้อมูล ข้อมูล 4 ช่องอยู่ครบ แถบขั้นตอนอยู่ขั้นที่ 1';
@@ -322,7 +322,7 @@ test('UI-19', '(เพิ่มเติม · T13 INT-08) server ไม่ท�
    await p.send();
    assert.equal(await p.visible('#vForm'), true);
    assert.equal(await p.text('#s_err'), 'ไม่สามารถเชื่อมต่อระบบได้ กรุณาลองใหม่อีกครั้ง');
-   assert.equal(await p.$('#s_name').inputValue(), 'สมชาย ใจดี');
+   assert.equal(await p.$('#s_name').inputValue(), 'A arizona');
    assert.equal(await p.$('#btnSend').isDisabled(), false);
    return 'แจ้ง "' + await p.text('#s_err') + '" ข้อมูลที่กรอกยังอยู่ กดส่งใหม่ได้';
 });
@@ -330,7 +330,7 @@ test('UI-19', '(เพิ่มเติม · T13 INT-08) server ไม่ท�
 test('UI-20', '(เพิ่มเติม · T11 UI-08) คำร้องถูกส่งกลับ (NEED_CORRECTION) → แสดงเหตุผล แก้แล้วส่งใหม่เลขที่เดิม', async b => {
    const back = req('NEED_CORRECTION', {
       correctionReason: 'กรุณาแนบ Transcript ฉบับล่าสุด',
-      answers: { field_1: 'สมชาย ใจดี', field_2: '0812345678', field_3: 'somchai@dome.tu.ac.th', field_4: '99 ม.ธ. รังสิต' }
+      answers: { field_1: 'A arizona', field_2: '0812345678', field_3: 'arizona@dome.tu.ac.th', field_4: '99 ม.ธ. รังสิต' }
    });
    const p = await open(b, { 'GET /api/requests/me': [200, [back]] });
    assert.match(await p.text('#s_note'), /กรุณาแนบ Transcript ฉบับล่าสุด/);
@@ -346,11 +346,11 @@ test('UI-20', '(เพิ่มเติม · T11 UI-08) คำร้องถ�
 
 test('UI-21', '(เพิ่มเติม · T11 UI-04) บันทึกร่าง → ปิดหน้าแล้วเปิดใหม่ ข้อมูลยังอยู่', async b => {
    const p = await open(b);
-   await p.set('s_name', 'สมชาย ใจดี');
+   await p.set('s_name', 'A arizona');
    await p.set('s_tel', '0812345678');
    await p.page.reload();
    await p.page.evaluate(() => window.U3Submit.ready);
-   assert.equal(await p.$('#s_name').inputValue(), 'สมชาย ใจดี');
+   assert.equal(await p.$('#s_name').inputValue(), 'A arizona');
    assert.equal(await p.$('#s_tel').inputValue(), '0812345678');
    return 'โหลดหน้าใหม่แล้วชื่อและเบอร์โทรที่กรอกไว้ยังอยู่ (เก็บใน sessionStorage)';
 });

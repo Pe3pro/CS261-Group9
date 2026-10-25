@@ -57,7 +57,7 @@ async function main() {
    const browser = await chromium.launch();
    console.log(`U3:T19 System test · ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })} · Chromium ${browser.version()} · API ${API}`);
    const A = ACC.s3, B = ACC.s2, D = ACC.s4;
-   const mailA = 'sompong@dome.tu.ac.th';
+   const mailA = 'center@dome.tu.ac.th';
    let requestA;
 
    /* ---------- ST-01 ยื่นคำร้องสำเร็จครบ flow (TC1) ---------- */
@@ -139,7 +139,7 @@ async function main() {
    /* ---------- ST-02 ยื่นซ้ำ (TC3) ---------- */
    await scenario('ST-02', async () => {
       const before = (await api('GET', '/api/requests/me', B.id)).data;
-      const mailsBefore = emails('somying@dome.tu.ac.th').length;
+      const mailsBefore = emails('berlin@dome.tu.ac.th').length;
       const p = await newPage(browser, base);
       await loginStudent(p, B.username);
       const note = await text(p.page, '#s_note');
@@ -152,7 +152,7 @@ async function main() {
       const after = (await api('GET', '/api/requests/me', B.id)).data;
       step('ST-02', 3, after.length === 1 && after[0].status === 'SUBMITTED' && after[0].submittedAt === before[0].submittedAt,
          `ฐานข้อมูล: คำร้องของ B ${after.length} แถว สถานะ ${after[0].status} submittedAt ไม่เปลี่ยน`);
-      const mails = emails('somying@dome.tu.ac.th').length;
+      const mails = emails('berlin@dome.tu.ac.th').length;
       step('ST-02', 4, after[0].documents.length === before[0].documents.length && mails === mailsBefore,
          `เอกสาร ${before[0].documents.length} → ${after[0].documents.length} ไฟล์ · Email ถึง B ${mailsBefore} → ${mails}`);
       return 'ผ่านครบ 4 ขั้น';
@@ -239,7 +239,7 @@ async function main() {
          `นาฬิกาเบราว์เซอร์ = ${clientNow.slice(0, 24)} ยังแจ้งหมดเขต และส่งจากหน้าเว็บได้ ${fromBrowser} (ใช้เวลา server)`);
 
       const db = await api('GET', '/api/requests/' + id, D.id);
-      const mails = emails('somjai@dome.tu.ac.th').length;
+      const mails = emails('dubai@dome.tu.ac.th').length;
       step('ST-03', 5, db.data.status !== 'SUBMITTED' && mails === 0, `ฐานข้อมูล: สถานะ ${db.data.status} · Email ถึงนักศึกษา ${mails} ฉบับ`);
       return 'ผ่านครบ 5 ขั้น';
    });

@@ -89,8 +89,8 @@ class RequestApiDaoIntegrationTest {
 
     private static final ZoneId BKK = ZoneId.of("Asia/Bangkok");
     private static final byte[] PDF = "%PDF-1.4\n% U3 test transcript\n%%EOF\n".getBytes(StandardCharsets.US_ASCII);
-    private static final String ANSWERS = "{\"answers\":{\"field_1\":\"สมชาย ใจดี\",\"field_2\":\"0812345678\","
-            + "\"field_3\":\"somchai@dome.tu.ac.th\",\"field_4\":\"99 ม.ธ. รังสิต\"}}";
+    private static final String ANSWERS = "{\"answers\":{\"field_1\":\"A arizona\",\"field_2\":\"0812345678\","
+            + "\"field_3\":\"arizona@dome.tu.ac.th\",\"field_4\":\"99 ม.ธ. รังสิต\"}}";
 
     @Autowired private MockMvc mvc;
     @Autowired private UserRepository users;
@@ -139,10 +139,10 @@ class RequestApiDaoIntegrationTest {
         when(clock.instant()).thenAnswer(inv -> now.get());
         when(clock.getZone()).thenReturn(BKK);
 
-        staffS = users.save(new User("staff01", "สมศรี ทำงานดี", "staff01@tu.ac.th", Role.STAFF)).getId();
-        userA = users.save(new User("6609650001", "สมชาย ใจดี", "somchai@dome.tu.ac.th", Role.STUDENT)).getId();
-        userB = users.save(new User("6609650002", "สมหญิง รักเรียน", "somying@dome.tu.ac.th", Role.STUDENT)).getId();
-        userC = users.save(new User("6609650003", "สมปอง ตั้งใจ", "sompong@dome.tu.ac.th", Role.STUDENT)).getId();
+        staffS = users.save(new User("staff01", "S staff", "staff01@tu.ac.th", Role.STAFF)).getId();
+        userA = users.save(new User("6609650001", "A arizona", "arizona@dome.tu.ac.th", Role.STUDENT)).getId();
+        userB = users.save(new User("6609650002", "B berlin", "berlin@dome.tu.ac.th", Role.STUDENT)).getId();
+        userC = users.save(new User("6609650003", "C center", "center@dome.tu.ac.th", Role.STUDENT)).getId();
         studentA = students.save(new Student(userA, "6609650001", "วิทยาศาสตร์และเทคโนโลยี", "วิทยาการคอมพิวเตอร์", 3.10)).getId();
         studentB = students.save(new Student(userB, "6609650002", "วิทยาศาสตร์และเทคโนโลยี", "วิทยาการคอมพิวเตอร์", 3.45)).getId();
         studentC = students.save(new Student(userC, "6609650003", "วิทยาศาสตร์และเทคโนโลยี", "วิทยาการคอมพิวเตอร์", 3.25)).getId();
@@ -271,13 +271,13 @@ class RequestApiDaoIntegrationTest {
         mvc.perform(get("/api/applications").param("status", "SUBMITTED").header("X-User-Id", staffS))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.id == " + id + ")].studentId").value("6609650001"))
-                .andExpect(jsonPath("$[?(@.id == " + id + ")].studentName").value("สมชาย ใจดี"))
+                .andExpect(jsonPath("$[?(@.id == " + id + ")].studentName").value("A arizona"))
                 .andExpect(jsonPath("$[?(@.id == " + id + ")].documents[0].fileName").value("transcript.pdf"));
         mvc.perform(get("/api/applications/" + id + "/detail").header("X-User-Id", staffS))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.answers.length()").value(4))
                 .andExpect(jsonPath("$.answers[1].value").value("0812345678"))
-                .andExpect(jsonPath("$.answers[2].value").value("somchai@dome.tu.ac.th"));
+                .andExpect(jsonPath("$.answers[2].value").value("arizona@dome.tu.ac.th"));
     }
 
     @Test

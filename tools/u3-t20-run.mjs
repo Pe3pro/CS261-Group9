@@ -54,9 +54,9 @@ async function uat(id, tester, fn) {
 
 /* ข้อมูลที่ผู้ทดสอบแต่ละคนกรอก */
 const DATA = {
-   P1: { s_name: 'สมปอง ตั้งใจ', s_tel: '0811111111', s_mail: 'sompong@dome.tu.ac.th', s_addr: '1 ม.ธ. รังสิต อ.คลองหลวง จ.ปทุมธานี' },
-   P2: { s_name: 'สมใจ ขยันยิ่ง', s_tel: '0822222222', s_mail: 'somjai@dome.tu.ac.th', s_addr: '2 ถ.พหลโยธิน อ.คลองหลวง จ.ปทุมธานี' },
-   P3: { s_name: 'สมชาย ใจดี', s_tel: '0833333333', s_mail: 'somchai@dome.tu.ac.th', s_addr: '3 หอพักเชียงราก จ.ปทุมธานี' }
+   P1: { s_name: 'C center', s_tel: '0811111111', s_mail: 'center@dome.tu.ac.th', s_addr: '1 ม.ธ. รังสิต อ.คลองหลวง จ.ปทุมธานี' },
+   P2: { s_name: 'D dubai', s_tel: '0822222222', s_mail: 'dubai@dome.tu.ac.th', s_addr: '2 ถ.พหลโยธิน อ.คลองหลวง จ.ปทุมธานี' },
+   P3: { s_name: 'A arizona', s_tel: '0833333333', s_mail: 'arizona@dome.tu.ac.th', s_addr: '3 หอพักเชียงราก จ.ปทุมธานี' }
 };
 
 /* เจ้าหน้าที่เปิดคำร้องของนักศึกษาในหน้า staff-review แล้วบันทึกผล (RETURN / REJECT) */
@@ -231,7 +231,7 @@ async function main() {
       await publishForm('U3 T20 ฟอร์มหมดเขต', deadline);
       while (!(await api('GET', '/api/forms/published', P2.id)).data.deadlinePassed) await sleep(1000);
       log(`   (เตรียม) เปิดแบบฟอร์มที่หมดเขต ${deadline} (เวลา server) และรอจนเลยเวลาแล้ว`);
-      const mailsBefore = emails('somjai@dome.tu.ac.th').length;
+      const mailsBefore = emails('dubai@dome.tu.ac.th').length;
       const p = await newPage(browser, base);
       await loginStudent(p, P2.username);
       const note = await text(p.page, '#s_note');
@@ -250,7 +250,7 @@ async function main() {
       check('UAT-04', note.startsWith('เกินระยะเวลาที่กำหนด') && note.includes('หมดเขต') && disabled, `หน้าเว็บ "${note}" · ปุ่มส่ง${disabled ? 'กดไม่ได้' : 'ยังกดได้'}`);
       const mine = (await api('GET', '/api/requests/me', P2.id)).data;
       const active = mine.filter(r => r.status === 'SUBMITTED');
-      const mails = emails('somjai@dome.tu.ac.th').length;
+      const mails = emails('dubai@dome.tu.ac.th').length;
       check('UAT-04', active.length === 0 && tries.every(s => s === 409) && mails === mailsBefore,
          `ลองส่ง 3 ครั้ง: POST submit ${tries.length ? tries.join(', ') : 'ไม่ถูกส่งจากหน้าเว็บ'} · ไม่มีคำร้อง SUBMITTED ของ P2 · Email ใหม่ ${mails - mailsBefore} ฉบับ`);
       return 'ส่งไม่ได้ทุกครั้ง แจ้งวันหมดเขตชัดเจน';
