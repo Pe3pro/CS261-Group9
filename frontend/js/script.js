@@ -141,10 +141,16 @@ const HOME = () => {
     return ['check', 'submit', 'ranking'][index] + '.html';
 };
 
+/* U1: role มาจาก backend (POST /api/auth/login) เก็บไว้ใน sessionStorage 'u5-user' โดย js/login.js
+   ไม่ใช่นักศึกษา → ไปหน้าตรวจใบสมัคร (ถ้ายังไม่มี role ใช้วิธีเดิมของ U5: ดูจากชื่อ staff/advisor) */
+const loginRole = u => { try { const x = JSON.parse(sessionStorage.getItem('u5-user') || 'null'); return x && x.username === u ? x.role : null } catch (e) { return null } };
+const isStaffLogin = u => { const r = loginRole(u); return r ? r !== 'STUDENT' : /^(staff|advisor)/i.test(u || '') };
+const HOME_OF = u => isStaffLogin(u) ? 'staff-review.html' : HOME();
+
 function initShell() {
     $('#who').textContent = S.user;
 
-    $$('nav a').forEach((link, index) => {
+    $$('nav a:not([data-free])').forEach((link, index) => {
         if (index + 1 > S.unlocked) {
             link.classList.add('disabled');
             link.setAttribute('aria-disabled', 'true');
@@ -155,6 +161,7 @@ function initShell() {
     $('#logout').onclick = () => {
         S.user = null;
         save();
+        try { sessionStorage.removeItem('u1-auth'); sessionStorage.removeItem('u5-user') } catch (e) { }
         location.href = 'login.html';
     };
 }
@@ -169,6 +176,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!S.user) {
         return location.replace('login.html');
+    }
+
+    // U5: หน้านักศึกษาไม่ใช่ของเจ้าหน้าที่
+    if (isStaffLogin(S.user)) {
+        return location.replace('staff-review.html');
     }
 
     if (S.unlocked < NEED[page]) {
@@ -194,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
    ========================================================= */
 function initLogin() {
     if (S.user) {
-        return location.replace(HOME());
+        return location.replace(HOME_OF(S.user));
     }
 
     $('#loginForm').addEventListener('submit', event => {
@@ -207,7 +219,7 @@ function initLogin() {
         if (username && password === '1234') {
             S.user = username;
             save();
-            location.href = HOME();
+            location.href = HOME_OF(username);
         } else {
             $('#loginErr').hidden = false;
         }
@@ -1016,78 +1028,305 @@ function initCheck() {
    หน้ายื่นคำร้อง
    ========================================================= */
 function initSubmit() {
-   const views = [
-      'vForm',
-      'vLoad',
-      'vResult'
-   ];
-
+   /* U3: ยื่นคำร้องผ่าน API จริง
+      GET /api/forms/published · GET /api/requests/me · POST /api/requests
+      PUT /api/requests/{id}/form · POST /api/requests/{id}/documents · POST /api/requests/{id}/submit */
+   const API = window.U3_API_BASE || 'http://localhost:8080';
+   const MAX_SIZE = 10 * 1024 * 1024;
+   const MSG = {
+      required: 'กรุณากรอกข้อมูลที่จำเป็นให้ครบ',
+      email: 'รูปแบบอีเมลไม่ถูกต้อง',
+      tel: 'รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง',
+      pdf: 'Transcript ต้องเป็นไฟล์ PDF เท่านั้น',
+      size: 'ไฟล์ต้องมีขนาดไม่เกิน 10 MB',
+      noFile: 'ไม่พบไฟล์หรือไฟล์อ่านไม่ได้',
+      fail1: 'คำร้องไม่ผ่านการตรวจสอบ 1 รายการ กรุณาแก้ไขข้อมูล',
+      duplicate: 'คุณมีคำร้องประเภทนี้ที่อยู่ระหว่างดำเนินการแล้ว',
+      deadline: 'เกินระยะเวลาที่กำหนด ไม่สามารถยื่นคำร้องได้',
+      network: 'ไม่สามารถเชื่อมต่อระบบได้ กรุณาลองใหม่อีกครั้ง',
+      login: 'กรุณาเข้าสู่ระบบใหม่อีกครั้ง'
+   };
+   const STATUS_TH = {
+      DRAFT: 'ฉบับร่าง',
+      SUBMITTED: 'ยื่นแล้ว รอเจ้าหน้าที่ตรวจสอบ',
+      UNDER_REVIEW: 'รออาจารย์พิจารณา',
+      NEED_CORRECTION: 'ส่งกลับให้แก้ไข',
+      APPROVED: 'อนุมัติแล้ว',
+      REJECTED: 'ไม่อนุมัติ'
+   };
+   const INPUTS = { s_name: 'TEXT', s_tel: 'PHONE', s_mail: 'EMAIL', s_addr: 'TEXTAREA' };
+   const views = ['vForm', 'vLoad', 'vResult'];
    const show = id => showView(views, id);
 
-   let ok = true;
+   let form = null;         // แบบฟอร์มที่เผยแพร่ (จาก API)
+   let reqId = null;        // เลขที่คำร้องที่กำลังกรอก (DRAFT / NEED_CORRECTION)
+   let busy = false;        // กันกดส่งซ้ำ
+   let locked = false;      // ยื่นไม่ได้ (ยื่นซ้ำ / หมดเขต / ยื่นสำเร็จแล้ว)
 
    $('#s_id').value = S.form.id;
    $('#s_fac').value = S.form.fac;
    $('#s_major').value = S.form.major;
    $('#s_gpax').value = S.form.gpax;
 
-   function go() {
-      setStepper(2);
-      show('vLoad');
-      setTimeout(result, DELAY);
+   /* ร่างที่กรอกไว้ เก็บใน sessionStorage ปิดหน้าแล้วเปิดใหม่ข้อมูลยังอยู่ */
+   const draft = S.draft || {};
+   Object.keys(INPUTS).forEach(id => {
+      if (draft[id] != null && !$('#' + id).value) {
+         $('#' + id).value = draft[id];
+      }
+      $('#' + id).addEventListener('input', () => {
+         S.draft = { ...(S.draft || {}), [id]: $('#' + id).value };
+         save();
+      });
+   });
+
+   function userId() {
+      try {
+         const u5 = JSON.parse(sessionStorage.getItem('u5-user') || 'null');
+         if (u5 && u5.id != null) return String(u5.id);
+         const u1 = JSON.parse(sessionStorage.getItem('u1-auth') || 'null');
+         return u1 && u1.userId != null ? String(u1.userId) : '';
+      } catch (e) {
+         return '';
+      }
    }
 
-   function result() {
-      setStepper(3, ok ? 0 : 2);
+   /* เรียก API: คืน { status, data } · เชื่อมต่อไม่ได้ → throw */
+   async function call(path, method = 'GET', body) {
+      const headers = { 'X-User-Id': userId() };
+      let payload;
+      if (body instanceof FormData) {
+         payload = body;
+      } else if (body !== undefined) {
+         headers['Content-Type'] = 'application/json';
+         payload = JSON.stringify(body);
+      }
+      const res = await fetch(API + path, { method, headers, body: payload });
+      let data = null;
+      try {
+         data = await res.json();
+      } catch (e) {
+         data = null;
+      }
+      return { status: res.status, data };
+   }
+
+   const fieldName = type => {
+      const f = form && (form.fields || []).find(x => x.fieldType === type);
+      return f ? f.fieldName : null;
+   };
+
+   const fmt = iso => {
+      if (!iso) return '';
+      const d = new Date(iso);
+      return isNaN(d) ? iso : d.toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
+   };
+
+   function note(text) {
+      const n = $('#s_note');
+      n.textContent = text;
+      n.hidden = !text;
+   }
+
+   function lock(text) {
+      locked = true;
+      note(text);
+      $('#btnSend').disabled = true;
+   }
+
+   function fillAnswers(req) {
+      if (!form || !req || !req.answers) return;
+      Object.entries(INPUTS).forEach(([id, type]) => {
+         const name = fieldName(type);
+         if (name && req.answers[name] != null) {
+            $('#' + id).value = req.answers[name];
+         }
+      });
+   }
+
+   /* โหลดแบบฟอร์ม (พร้อมวันหมดเขตตามเวลา server) และคำร้องเดิมของนักศึกษา */
+   async function loadState() {
+      try {
+         // ข้อมูลนักศึกษาจากฐานข้อมูล (ถ้าเรียกไม่ได้ใช้ค่าที่เก็บไว้ในหน้าเว็บ)
+         const me = await call('/api/students/me');
+         if (me.status === 200 && me.data) {
+            $('#s_id').value = me.data.studentId || '';
+            $('#s_fac').value = me.data.faculty || '';
+            $('#s_major').value = me.data.major || '';
+            $('#s_gpax').value = me.data.gpa == null ? '' : Number(me.data.gpa).toFixed(2);
+            if (!$('#s_name').value && me.data.fullName) $('#s_name').value = me.data.fullName;
+            if (!$('#s_mail').value && me.data.email) $('#s_mail').value = me.data.email;
+         }
+         const pub = await call('/api/forms/published');
+         if (pub.status === 200 && pub.data) {
+            form = pub.data.form;
+            if (pub.data.deadlinePassed) {
+               lock(MSG.deadline + (form.deadline ? ' (หมดเขต ' + fmt(form.deadline) + ')' : ''));
+            }
+         }
+         const mine = await call('/api/requests/me');
+         if (mine.status === 200 && Array.isArray(mine.data)) {
+            // ร่างของแบบฟอร์มฉบับเก่า (ปิดไปแล้ว) ไม่นับ
+            const open = mine.data.find(r => r.status !== 'REJECTED'
+               && !(r.status === 'DRAFT' && form && r.formTemplateId !== form.id));
+            if (open && (open.status === 'DRAFT' || open.status === 'NEED_CORRECTION')) {
+               reqId = open.id;
+               fillAnswers(open);
+               if (open.status === 'NEED_CORRECTION' && !locked) {
+                  note('เจ้าหน้าที่ส่งคำร้องเลขที่ ' + open.id + ' กลับให้แก้ไข'
+                     + (open.correctionReason ? ': ' + open.correctionReason : ''));
+               }
+            } else if (open) {
+               lock(MSG.duplicate + ' (เลขที่คำร้อง ' + open.id + ' · สถานะ: '
+                  + (STATUS_TH[open.status] || open.status) + ')');
+            }
+         }
+      } catch (e) {
+         note(MSG.network);
+      }
+   }
+
+   /* ตรวจข้อมูลฝั่งหน้าเว็บ คืนข้อความ error (ว่าง = ผ่าน) */
+   function validate() {
+      Object.keys(INPUTS).forEach(id => $('#' + id).removeAttribute('aria-invalid'));
+      const empty = Object.keys(INPUTS).filter(id => !$('#' + id).value.trim());
+      if (empty.length) {
+         empty.forEach(id => $('#' + id).setAttribute('aria-invalid', 'true'));
+         return MSG.required;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test($('#s_mail').value.trim())) {
+         $('#s_mail').setAttribute('aria-invalid', 'true');
+         return MSG.email;
+      }
+      if (!/^0\d{8,9}$/.test($('#s_tel').value.replace(/[\s-]/g, ''))) {
+         $('#s_tel').setAttribute('aria-invalid', 'true');
+         return MSG.tel;
+      }
+      return '';
+   }
+
+   /* หน้าผล: ok = ผ่าน · fileOk/fileText = แถว Transcript · buttons = ปุ่มที่แสดง */
+   function result(ok, message, fileOk, fileText, buttons = {}) {
+      setStepper(3, ok ? 0 : 2, ok);
       show('vResult');
-
       const alert = $('#sAlert');
-
-      alert.className =
-         'alert ' + (ok ? 'ok' : 'bad');
-
-      alert.textContent = ok
-         ? 'คำร้องของคุณผ่านการตรวจสอบแล้ว'
-         : 'คำร้องไม่ผ่านการตรวจสอบ 1 รายการ กรุณาแก้ไขข้อมูล';
-
-      const transcript = $('#sTr');
-
-      transcript.className =
-         'res ' + (ok ? 'ok' : 'bad');
-
-      $('.dot', transcript).textContent =
-         ok ? '✓' : '✕';
-
-      $('small', transcript).textContent = ok
-         ? 'ไฟล์อ่านได้และข้อมูลตรงกับระบบ'
-         : 'ไม่พบไฟล์หรือไฟล์อ่านไม่ได้';
-
+      alert.className = 'alert ' + (ok ? 'ok' : 'bad');
+      alert.textContent = message;
+      const tr = $('#sTr');
+      tr.className = 'res ' + (fileOk ? 'ok' : 'bad');
+      $('.dot', tr).textContent = fileOk ? '✓' : '✕';
+      $('small', tr).textContent = fileText;
       $('#sNext').hidden = !ok;
-      $('#sRetry').hidden = ok;
-      $('#sEdit').hidden = ok;
+      $('#sRetry').hidden = !buttons.retry;
+      $('#sEdit').hidden = !buttons.edit;
+   }
+
+   function backToForm(message) {
+      setStepper(1);
+      show('vForm');
+      $('#s_err').textContent = message;
+      $('#s_err').hidden = !message;
+   }
+
+   /* แปลง error จาก API เป็นสิ่งที่แสดงบนหน้าเว็บ */
+   function fail(res) {
+      const code = res.data && res.data.code;
+      const msg = (res.data && res.data.message) || 'เกิดข้อผิดพลาด (' + res.status + ')';
+      if (res.status === 401) {
+         return backToForm(MSG.login);
+      }
+      if (code === 'DEADLINE_PASSED') {
+         locked = true;
+         return result(false, MSG.deadline, true, 'แนบไฟล์แล้ว');
+      }
+      if (code === 'DUPLICATE_REQUEST' || (res.status === 409 && code === 'INVALID_STATUS')) {
+         locked = true;
+         return result(false, MSG.duplicate, true, '-');
+      }
+      if (code === 'MISSING_DOCUMENT') {
+         return result(false, MSG.fail1, false, MSG.noFile, { retry: true, edit: true });
+      }
+      if (code === 'INVALID_FILE' || code === 'FILE_TOO_LARGE') {
+         return result(false, MSG.fail1, false, msg, { retry: true, edit: true });
+      }
+      if (res.status === 400) {
+         const fields = (res.data && res.data.fields) || [];
+         return backToForm(fields.length ? fields.map(f => f.message).join(' · ') : msg);
+      }
+      return result(false, msg, false, '-', { retry: true, edit: true });
+   }
+
+   function answers() {
+      const out = {};
+      Object.entries(INPUTS).forEach(([id, type]) => {
+         const name = fieldName(type);
+         if (name) out[name] = $('#' + id).value.trim();
+      });
+      return out;
+   }
+
+   /* ส่งคำร้อง: สร้าง (ถ้ายังไม่มี) → บันทึกคำตอบ → แนบไฟล์ (ถ้าเลือก) → ยื่น
+      ไม่ได้แนบไฟล์ → ให้ API ตรวจและตอบ 400 MISSING_DOCUMENT */
+   async function send() {
+      if (busy || locked) return;
+      const file = $('#s_tr').files[0];
+      if (file && !/\.pdf$/i.test(file.name)) {
+         return result(false, MSG.fail1, false, MSG.pdf, { edit: true });
+      }
+      if (file && file.size > MAX_SIZE) {
+         return result(false, MSG.fail1, false, MSG.size, { edit: true });
+      }
+      busy = true;
+      $('#btnSend').disabled = true;
+      $('#sRetry').disabled = true;
+      setStepper(2);
+      show('vLoad');
+      try {
+         if (!form) {
+            const pub = await call('/api/forms/published');
+            if (pub.status !== 200) return fail(pub);
+            form = pub.data.form;
+         }
+         if (reqId == null) {
+            const created = await call('/api/requests', 'POST', { formTemplateId: form.id });
+            if (created.status !== 201) return fail(created);
+            reqId = created.data.id;
+         }
+         const saved = await call('/api/requests/' + reqId + '/form', 'PUT', { answers: answers() });
+         if (saved.status !== 200) return fail(saved);
+         if (file) {
+            const fd = new FormData();
+            fd.append('file', file, file.name);
+            const up = await call('/api/requests/' + reqId + '/documents', 'POST', fd);
+            if (up.status !== 201) return fail(up);
+         }
+         const done = await call('/api/requests/' + reqId + '/submit', 'POST');
+         if (done.status !== 200) return fail(done);
+         locked = true;
+         S.draft = {};
+         save();
+         result(true, 'ยื่นคำร้องสำเร็จ เลขที่คำร้อง ' + done.data.id + ' · สถานะ: '
+            + (STATUS_TH[done.data.status] || done.data.status), true, 'ไฟล์อ่านได้และข้อมูลตรงกับระบบ');
+      } catch (e) {
+         backToForm(MSG.network);
+      } finally {
+         busy = false;
+         $('#btnSend').disabled = locked;
+         $('#sRetry').disabled = false;
+      }
    }
 
    $('#btnSend').onclick = () => {
-      const full = [
-         's_name',
-         's_tel',
-         's_mail',
-         's_addr'
-      ].every(id => $('#' + id).value.trim());
-
-      $('#s_err').hidden = full;
-
-      if (!full) {
-         return;
-      }
-
-      // ต้นแบบตรวจเพียงว่ามีไฟล์แนบ
-      ok = $('#s_tr').files.length > 0;
-
-      go();
+      if (busy || locked) return;
+      const error = validate();
+      $('#s_err').textContent = error;
+      $('#s_err').hidden = !error;
+      if (error) return;
+      if (!window.confirm('ยืนยันการส่งคำร้อง?')) return;
+      send();
    };
 
-   $('#sRetry').onclick = go;
+   $('#sRetry').onclick = () => send();
 
    $('#sEdit').onclick = () => {
       setStepper(1);
@@ -1098,6 +1337,8 @@ function initSubmit() {
       S.unlocked = 3;
       save();
    };
+
+   window.U3Submit = { ready: loadState() };
 }
 
 /* =========================================================

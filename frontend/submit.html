@@ -13,7 +13,7 @@
     <header>ระบบสหกิจศึกษา<span><span id="who"></span> · <button id="logout" type="button">ออกจากระบบ</button></span>
     </header>
     <nav><a href="check.html">ตรวจสอบคุณสมบัติ</a><a href="submit.html" class="on" aria-current="page">ยื่นคำร้อง</a><a
-            href="ranking.html">จับคู่บริษัท</a></nav>
+            href="ranking.html">จับคู่บริษัท</a><a href="notifications.html" data-free>การแจ้งเตือน</a></nav>
     <main>
         <h1>ยื่นคำร้อง</h1>
         <p class="sub">ยื่นคำร้องเข้าร่วมสหกิจศึกษา</p>
@@ -23,6 +23,7 @@
 
         <section id="vForm">
             <div class="card">
+                <div id="s_note" class="alert bad" role="status" hidden></div>
                 <h2>ข้อมูลนักศึกษา</h2>
                 <div class="fld"><label for="s_name">ชื่อ-นามสกุล *</label><input id="s_name"
                         placeholder="ชื่อ นามสกุล"></div>
@@ -40,7 +41,7 @@
                 <div class="fld"><label for="s_addr">ที่อยู่ปัจจุบัน *</label><textarea id="s_addr" rows="3"></textarea>
                 </div>
                 <div class="fld"><label for="s_tr">Transcript *</label><input id="s_tr" type="file"
-                        accept=".pdf,image/*"></div>
+                        accept=".pdf,application/pdf"></div>
                 <div id="s_err" class="alert bad" role="alert" hidden>กรุณากรอกข้อมูลที่จำเป็นให้ครบ</div>
                 <div class="acts"><a class="btn ghost" href="check.html">ยกเลิก</a><button class="btn" id="btnSend"
                         type="button">ส่งคำร้องเพื่อตรวจสอบ</button></div>

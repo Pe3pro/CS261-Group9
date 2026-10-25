@@ -1,0 +1,1495 @@
+{
+  "info": {
+    "name": "U3 Submit — ยื่นคำร้องขอฝึกสหกิจศึกษา",
+    "description": "ใช้กับฐานข้อมูลใหม่ที่มีข้อมูลจาก DemoDataSeeder (docker compose down -v แล้ว docker compose up -d --build)\nuserId: 1 เจ้าหน้าที่ · 3 นศ. 6609650001 · 4 นศ. B 6609650002 · 5 นศ. A 6609650003 · 6 นศ. D 6609650004\nRun collection ตามลำดับ (Runner) · ไฟล์อัปโหลดอยู่ที่ .doc/postman/u3-files/ ตั้ง Settings → General → Working directory ของ Postman เป็นโฟลเดอร์ .doc/postman",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1 ยื่นสำเร็จ / ข้อมูลไม่ครบ (TC1, TC2)",
+      "item": [
+        {
+          "name": "00 ข้อมูลนักศึกษา A (GET /api/students/me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "5"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/students/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "students",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('studentId = 6609650003', () => pm.expect(pm.response.json().studentId).to.eql(\"6609650003\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01 แบบฟอร์มที่เปิดให้ยื่น (GET /api/forms/published)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "5"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/forms/published",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "forms",
+                "published"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('ยังไม่หมดเขต', () => pm.expect(j.deadlinePassed).to.eql(false));",
+                  "pm.collectionVariables.set('formId', j.form.id);",
+                  "pm.collectionVariables.set('serverTime', j.serverTime);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "U3-API-13 สร้างคำร้องโดยไม่ login (ไม่ส่ง X-User-Id) → 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "requests"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"formTemplateId\": {{formId}}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('code UNAUTHORIZED', () => pm.expect(pm.response.json().code).to.eql('UNAUTHORIZED'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "U3-API-01 นศ. A สร้างคำร้อง → 201 DRAFT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "5"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "requests"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"formTemplateId\": {{formId}}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('status = DRAFT', () => pm.expect(pm.response.json().status).to.eql(\"DRAFT\"));",
+                  "pm.collectionVariables.set('reqId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "U3-API-04 กรอกฟอร์ม ไม่มีเบอร์โทร + อีเมล somchai@ → 400 พร้อมรายชื่อช่อง",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "5"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{reqId}}/form",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "requests",
+                "{{reqId}}",
+                "form"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": {\n    \"field_1\": \"สมปอง ตั้งใจ\",\n    \"field_3\": \"somchai@\",\n    \"field_4\": \"99 ม.ธ. รังสิต\"\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('code VALIDATION_ERROR', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));",
+                  "const f = pm.response.json().fields.map(x => x.field);",
+                  "pm.test('ช่องที่ผิด field_2, field_3', () => pm.expect(f).to.eql(['field_2', 'field_3']));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "U3-API-03 กรอกฟอร์มครบและถูกรูปแบบ → 200",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "5"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{reqId}}/form",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "requests",
+                "{{reqId}}",
+                "form"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": {\n    \"field_1\": \"สมปอง ตั้งใจ\",\n    \"field_2\": \"0812345678\",\n    \"field_3\": \"sompong@dome.tu.ac.th\",\n    \"field_4\": \"99 ม.ธ. รังสิต\"\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('answers.field_2 = 0812345678', () => pm.expect(pm.response.json().answers.field_2).to.eql(\"0812345678\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "U3-INT-02 ส่งโดยยังไม่แนบ PDF → 400 MISSING_DOCUMENT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "5"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{reqId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "requests",
+                "{{reqId}}",
+                "submit"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('code MISSING_DOCUMENT', () => pm.expect(pm.response.json().code).to.eql('MISSING_DOCUMENT'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "U3-API-06 อัปโหลด photo.jpg → 400 INVALID_FILE",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "5"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{reqId}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "requests",
+                "{{reqId}}",
+                "documents"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "u3-files/photo.jpg"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('code INVALID_FILE', () => pm.expect(pm.response.json().code).to.eql('INVALID_FILE'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "U3-SVC-07 อัปโหลด fake.pdf (นามสกุล .pdf แต่ไม่ใช่ PDF) → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "5"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{reqId}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "requests",
+                "{{reqId}}",
+                "documents"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "u3-files/fake.pdf"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('code INVALID_FILE', () => pm.expect(pm.response.json().code).to.eql('INVALID_FILE'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "U3-API-05 อัปโหลด transcript.pdf → 201",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "5"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{reqId}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "requests",
+                "{{reqId}}",
+                "documents"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "u3-files/transcript.pdf"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('fileName = transcript.pdf', () => pm.expect(pm.response.json().fileName).to.eql(\"transcript.pdf\"));",
+                  "pm.collectionVariables.set('docId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "U3-API-07 ยื่นคำร้อง → 200 SUBMITTED",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "5"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{reqId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "requests",
+                "{{reqId}}",
+                "submit"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('status = SUBMITTED', () => pm.expect(pm.response.json().status).to.eql(\"SUBMITTED\"));",
+                  "pm.test('มี submittedAt', () => pm.expect(pm.response.json().submittedAt).to.be.ok);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2 ยื่นซ้ำ / สิทธิ์ (TC3)",
+      "item": [
+        {
+          "name": "U3-UI-07 ยื่นคำร้องเดิมซ้ำ → 409",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "5"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{reqId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "requests",
+                "{{reqId}}",
+                "submit"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('code INVALID_STATUS', () => pm.expect(pm.response.json().code).to.eql('INVALID_STATUS'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "U3-API-09 นศ. A สร้างคำร้องใหม่ทั้งที่มีคำร้องค้าง → 409 DUPLICATE_REQUEST",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "5"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "requests"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"formTemplateId\": {{formId}}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('code DUPLICATE_REQUEST', () => pm.expect(pm.response.json().code).to.eql('DUPLICATE_REQUEST'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "U3-API-12 นศ. B ดูคำร้องของตัวเอง → 200 SUBMITTED",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "4"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "requests",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('SUBMITTED', () => pm.expect(pm.response.json()[0].status).to.eql('SUBMITTED'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "U3-API-08 นศ. B เปิดคำร้องของ นศ. A → 403",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "4"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{reqId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "requests",
+                "{{reqId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "U3-API-11 ยื่นคำร้อง id ที่ไม่มีอยู่ (999999) → 404",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "5"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/999999/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "requests",
+                "999999",
+                "submit"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('code NOT_FOUND', () => pm.expect(pm.response.json().code).to.eql('NOT_FOUND'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3 เจ้าหน้าที่รับคำร้องและส่งกลับให้แก้ (TC1, TC2)",
+      "item": [
+        {
+          "name": "U3-INT-04 เจ้าหน้าที่เห็นคำร้องในรายการรอตรวจ (API ของ U5)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "1"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/applications?status=SUBMITTED",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "applications"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "SUBMITTED"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const row = pm.response.json().find(a => a.id === Number(pm.collectionVariables.get('reqId')));",
+                  "pm.test('มีคำร้องของ 6609650003', () => pm.expect(row && row.studentId).to.eql('6609650003'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "เจ้าหน้าที่เปิดไฟล์ PDF → 200 application/pdf",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documents/{{docId}}?userId=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "documents",
+                "{{docId}}"
+              ],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('content-type PDF', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/pdf'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "เจ้าหน้าที่ส่งกลับให้แก้ไข (RETURN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "1"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/approvals/{{reqId}}/decision",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "approvals",
+                "{{reqId}}",
+                "decision"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"RETURN\",\n  \"comment\": \"กรุณาแนบ Transcript ฉบับล่าสุด\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('applicationStatus = NEED_CORRECTION', () => pm.expect(pm.response.json().applicationStatus).to.eql(\"NEED_CORRECTION\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "U3-UI-08 นศ. A เห็นเหตุผลที่ถูกส่งกลับ",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "5"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "requests",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json()[0];",
+                  "pm.test('NEED_CORRECTION', () => pm.expect(r.status).to.eql('NEED_CORRECTION'));",
+                  "pm.test('มีเหตุผล', () => pm.expect(r.correctionReason).to.eql('กรุณาแนบ Transcript ฉบับล่าสุด'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "U3-INT-07 แก้เบอร์โทร → 200",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "5"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{reqId}}/form",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "requests",
+                "{{reqId}}",
+                "form"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": {\n    \"field_1\": \"สมปอง ตั้งใจ\",\n    \"field_2\": \"0899999999\",\n    \"field_3\": \"sompong@dome.tu.ac.th\",\n    \"field_4\": \"99 ม.ธ. รังสิต\"\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('answers.field_2 = 0899999999', () => pm.expect(pm.response.json().answers.field_2).to.eql(\"0899999999\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "U3-SVC-06 ส่งใหม่ → 200 SUBMITTED เลขที่เดิม",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "5"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{reqId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "requests",
+                "{{reqId}}",
+                "submit"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('status = SUBMITTED', () => pm.expect(pm.response.json().status).to.eql(\"SUBMITTED\"));",
+                  "pm.test('เลขที่เดิม', () => pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get('reqId'))));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4 ยื่นหลังหมดเขต (TC4)",
+      "item": [
+        {
+          "name": "เวลา server ปัจจุบัน",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "6"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/forms/published",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "forms",
+                "published"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('serverTime', pm.response.json().serverTime);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "เจ้าหน้าที่สร้างฟอร์มที่หมดเขตในอีก 15 วินาที",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "1"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/forms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "forms"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"U3 Postman ฟอร์มหมดเขตเร็ว\",\n  \"description\": \"U3 Postman\",\n  \"deadline\": \"{{deadline}}\",\n  \"fields\": [\n    {\n      \"label\": \"ชื่อ-นามสกุล\",\n      \"fieldType\": \"TEXT\",\n      \"required\": true\n    },\n    {\n      \"label\": \"เบอร์โทรศัพท์\",\n      \"fieldType\": \"PHONE\",\n      \"required\": true\n    },\n    {\n      \"label\": \"อีเมล\",\n      \"fieldType\": \"EMAIL\",\n      \"required\": true\n    },\n    {\n      \"label\": \"ที่อยู่ปัจจุบัน\",\n      \"fieldType\": \"TEXTAREA\",\n      \"required\": true\n    },\n    {\n      \"label\": \"Transcript\",\n      \"fieldType\": \"FILE\",\n      \"required\": true\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// วันหมดเขต = เวลา server + 15 วินาที (ใช้เวลา server ไม่ใช่เวลาเครื่องที่รัน Postman)",
+                  "const t = new Date(pm.collectionVariables.get('serverTime').slice(0, 19) + 'Z');",
+                  "t.setUTCSeconds(t.getUTCSeconds() + 15);",
+                  "pm.collectionVariables.set('deadline', t.toISOString().slice(0, 19));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('shortFormId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "เจ้าหน้าที่เปิดใช้ฟอร์มนั้น",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "1"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/forms/{{shortFormId}}/publish",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "forms",
+                "{{shortFormId}}",
+                "publish"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "นศ. D สร้างคำร้อง (ก่อนหมดเขต)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "6"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "requests"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"formTemplateId\": {{shortFormId}}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('lateId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "นศ. D กรอกฟอร์ม",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "6"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{lateId}}/form",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "requests",
+                "{{lateId}}",
+                "form"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": {\n    \"field_1\": \"สมใจ ขยันยิ่ง\",\n    \"field_2\": \"0812345678\",\n    \"field_3\": \"sompong@dome.tu.ac.th\",\n    \"field_4\": \"99 ม.ธ. รังสิต\"\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "นศ. D แนบ transcript.pdf",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "6"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{lateId}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "requests",
+                "{{lateId}}",
+                "documents"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "u3-files/transcript.pdf"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "U3-API-10 ยื่นหลังหมดเขต → 409 DEADLINE_PASSED (รอ 16 วินาทีก่อนส่ง)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "6"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{lateId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "requests",
+                "{{lateId}}",
+                "submit"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// รอให้เลยวันหมดเขตก่อนส่ง",
+                  "setTimeout(() => {}, 16000);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('code DEADLINE_PASSED', () => pm.expect(pm.response.json().code).to.eql('DEADLINE_PASSED'));",
+                  "pm.test('message = เกินระยะเวลาที่กำหนด ไม่สามารถยื่นคำร้องได้', () => pm.expect(pm.response.json().message).to.eql(\"เกินระยะเวลาที่กำหนด ไม่สามารถยื่นคำร้องได้\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "U3-INT-12 ตรวจว่าคำร้องยังเป็น DRAFT",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "6"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{lateId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "requests",
+                "{{lateId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('status = DRAFT', () => pm.expect(pm.response.json().status).to.eql(\"DRAFT\"));",
+                  "pm.test('submittedAt = None', () => pm.expect(pm.response.json().submittedAt).to.eql(null));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "หน้าเว็บจะรู้ว่าหมดเขต (deadlinePassed = true)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "6"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/forms/published",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "forms",
+                "published"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('deadlinePassed = True', () => pm.expect(pm.response.json().deadlinePassed).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "เปิดฟอร์มใหม่ที่ยังไม่หมดเขต (คืนระบบให้ใช้ต่อได้)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "1"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/forms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "forms"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"คำร้องขอฝึกสหกิจศึกษา (เปิดใหม่หลังทดสอบ Postman)\",\n  \"description\": \"U3 Postman\",\n  \"deadline\": \"{{reopenDeadline}}\",\n  \"fields\": [\n    {\n      \"label\": \"ชื่อ-นามสกุล\",\n      \"fieldType\": \"TEXT\",\n      \"required\": true\n    },\n    {\n      \"label\": \"เบอร์โทรศัพท์\",\n      \"fieldType\": \"PHONE\",\n      \"required\": true\n    },\n    {\n      \"label\": \"อีเมล\",\n      \"fieldType\": \"EMAIL\",\n      \"required\": true\n    },\n    {\n      \"label\": \"ที่อยู่ปัจจุบัน\",\n      \"fieldType\": \"TEXTAREA\",\n      \"required\": true\n    },\n    {\n      \"label\": \"Transcript\",\n      \"fieldType\": \"FILE\",\n      \"required\": true\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const t = new Date(pm.collectionVariables.get('serverTime').slice(0, 19) + 'Z');",
+                  "t.setUTCDate(t.getUTCDate() + 30);",
+                  "pm.collectionVariables.set('reopenDeadline', t.toISOString().slice(0, 19));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('reopenFormId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "เปิดใช้ฟอร์มใหม่",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "1"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/forms/{{reopenFormId}}/publish",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "forms",
+                "{{reopenFormId}}",
+                "publish"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5 ยังไม่ผ่านเกณฑ์ (U2)",
+      "item": [
+        {
+          "name": "นศ. D ตรวจคุณสมบัติ (U2) ไม่ผ่าน GPA 2.50",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/eligibility/check",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "eligibility",
+                "check"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": \"6609650004\",\n  \"curriculum\": \"66\",\n  \"gpax\": \"2.50\",\n  \"grades\": {\n    \"คพ.100\": \"A\",\n    \"คพ.101\": \"B+\",\n    \"คพ.102\": \"B\",\n    \"คพ.111\": \"A\",\n    \"คพ.251\": \"B+\",\n    \"คพ.261\": \"B\",\n    \"คพ.216\": \"A\"\n  },\n  \"courseStatuses\": {\n    \"คพ.180\": \"เคยศึกษาแล้ว\",\n    \"คพ.262\": \"กำลังศึกษา\"\n  },\n  \"acknowledgements\": [\n    true,\n    true,\n    true\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('eligible = False', () => pm.expect(pm.response.json().eligible).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "U3-API-02 นศ. D (ยังไม่ผ่านเกณฑ์) สร้างคำร้อง → 403 NOT_ELIGIBLE",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "6"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "requests"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"formTemplateId\": {{reopenFormId}}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "pm.test('code NOT_ELIGIBLE', () => pm.expect(pm.response.json().code).to.eql('NOT_ELIGIBLE'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "formId",
+      "value": ""
+    },
+    {
+      "key": "serverTime",
+      "value": ""
+    },
+    {
+      "key": "reqId",
+      "value": ""
+    },
+    {
+      "key": "docId",
+      "value": ""
+    },
+    {
+      "key": "deadline",
+      "value": ""
+    },
+    {
+      "key": "shortFormId",
+      "value": ""
+    },
+    {
+      "key": "lateId",
+      "value": ""
+    },
+    {
+      "key": "reopenDeadline",
+      "value": ""
+    },
+    {
+      "key": "reopenFormId",
+      "value": ""
+    }
+  ]
+}

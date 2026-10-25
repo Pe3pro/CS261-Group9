@@ -1,0 +1,16 @@
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.755 s -- in com.example.demo.dao.U3RequestRepositoryTest
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+[U3RequestRepositoryTest] tests=11 failures=0 errors=0 time=5.755s timestamp=None
+  PASS  findByIdWithAnswers  (0.655s)
+  PASS  updateAnswerWithoutDuplicate  (0.038s)
+  PASS  saveDocumentMetadata  (0.032s)
+  PASS  foreignKeyRejectsUnknownStudent  (0.021s)
+  PASS  readDeadline  (0.016s)
+  PASS  findByStudentId  (0.032s)
+  PASS  saveNewRequest  (0.015s)
+  PASS  saveAndReadAnswers  (0.017s)
+  PASS  saveCorrectedRequest  (0.049s)
+  PASS  noSqlInjection  (0.055s)
+  PASS  findByIdNotFound  (0.023s)
