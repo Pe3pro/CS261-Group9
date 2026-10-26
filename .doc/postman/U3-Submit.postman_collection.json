@@ -163,7 +163,7 @@
           ]
         },
         {
-          "name": "U3-API-04 กรอกฟอร์ม ไม่มีเบอร์โทร + อีเมล somchai@ → 400 พร้อมรายชื่อช่อง",
+          "name": "U3-API-04 กรอกฟอร์ม ไม่มีเบอร์โทร + อีเมล arizona@ → 400 พร้อมรายชื่อช่อง",
           "request": {
             "method": "PUT",
             "header": [
@@ -190,7 +190,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"answers\": {\n    \"field_1\": \"สมปอง ตั้งใจ\",\n    \"field_3\": \"somchai@\",\n    \"field_4\": \"99 ม.ธ. รังสิต\"\n  }\n}"
+              "raw": "{\n  \"answers\": {\n    \"field_1\": \"C center\",\n    \"field_3\": \"arizona@\",\n    \"field_4\": \"99 ม.ธ. รังสิต\"\n  }\n}"
             }
           },
           "event": [
@@ -236,7 +236,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"answers\": {\n    \"field_1\": \"สมปอง ตั้งใจ\",\n    \"field_2\": \"0812345678\",\n    \"field_3\": \"sompong@dome.tu.ac.th\",\n    \"field_4\": \"99 ม.ธ. รังสิต\"\n  }\n}"
+              "raw": "{\n  \"answers\": {\n    \"field_1\": \"C center\",\n    \"field_2\": \"0812345678\",\n    \"field_3\": \"center@dome.tu.ac.th\",\n    \"field_4\": \"99 ม.ธ. รังสิต\"\n  }\n}"
             }
           },
           "event": [
@@ -843,7 +843,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"answers\": {\n    \"field_1\": \"สมปอง ตั้งใจ\",\n    \"field_2\": \"0899999999\",\n    \"field_3\": \"sompong@dome.tu.ac.th\",\n    \"field_4\": \"99 ม.ธ. รังสิต\"\n  }\n}"
+              "raw": "{\n  \"answers\": {\n    \"field_1\": \"C center\",\n    \"field_2\": \"0899999999\",\n    \"field_3\": \"center@dome.tu.ac.th\",\n    \"field_4\": \"99 ม.ธ. รังสิต\"\n  }\n}"
             }
           },
           "event": [
@@ -1095,7 +1095,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"answers\": {\n    \"field_1\": \"สมใจ ขยันยิ่ง\",\n    \"field_2\": \"0812345678\",\n    \"field_3\": \"sompong@dome.tu.ac.th\",\n    \"field_4\": \"99 ม.ธ. รังสิต\"\n  }\n}"
+              "raw": "{\n  \"answers\": {\n    \"field_1\": \"D dubai\",\n    \"field_2\": \"0812345678\",\n    \"field_3\": \"center@dome.tu.ac.th\",\n    \"field_4\": \"99 ม.ธ. รังสิต\"\n  }\n}"
             }
           },
           "event": [

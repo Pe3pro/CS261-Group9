@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.demo.dao.ApplicationRepository;
 import com.example.demo.dao.DocumentRepository;
+import com.example.demo.dao.EligibilityRecordDao;
 import com.example.demo.dao.FormFieldRepository;
 import com.example.demo.dao.FormResponseRepository;
 import com.example.demo.dao.FormTemplateRepository;
@@ -18,6 +19,7 @@ import com.example.demo.dao.UserRepository;
 import com.example.demo.entity.Application;
 import com.example.demo.entity.ApplicationStatus;
 import com.example.demo.entity.Document;
+import com.example.demo.entity.EligibilityRecord;
 import com.example.demo.entity.FieldType;
 import com.example.demo.entity.FormField;
 import com.example.demo.entity.FormResponse;
@@ -33,6 +35,8 @@ import com.example.demo.service.FileStorage;
  *
  * ฐานข้อมูลใหม่จะได้ userId ตามนี้: 1 = เจ้าหน้าที่, 2 = อาจารย์, 3 = นักศึกษา A, 4 = นักศึกษา B,
  * 5 = นักศึกษา C, 6 = นักศึกษา D (U3: ยังไม่มีคำร้อง)
+ * 7 = นักศึกษา E (6609650005)
+ * ผลตรวจ U2: A–D ผ่านคุณสมบัติแล้ว / E ยังไม่เคยตรวจ (ยื่นคำร้องจะได้ 403 NOT_ELIGIBLE)
  */
 @Component
 @ConditionalOnProperty(name = "app.seed-demo-data", havingValue = "true")
@@ -46,10 +50,11 @@ public class DemoDataSeeder implements CommandLineRunner {
     private final FormResponseRepository responses;
     private final DocumentRepository documents;
     private final FileStorage fileStorage;
+    private final EligibilityRecordDao eligibility;
 
     public DemoDataSeeder(UserRepository users, StudentRepository students, FormTemplateRepository templates,
             FormFieldRepository fields, ApplicationRepository applications, FormResponseRepository responses,
-            DocumentRepository documents, FileStorage fileStorage) {
+            DocumentRepository documents, FileStorage fileStorage, EligibilityRecordDao eligibility) {
         this.users = users;
         this.students = students;
         this.templates = templates;
@@ -58,6 +63,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         this.responses = responses;
         this.documents = documents;
         this.fileStorage = fileStorage;
+        this.eligibility = eligibility;
     }
 
     @Override
@@ -66,20 +72,31 @@ public class DemoDataSeeder implements CommandLineRunner {
         if (users.count() > 0) {
             return;
         }
-        User staff = users.save(new User("staff01", "สมศรี ทำงานดี", "staff01@tu.ac.th", Role.STAFF));
-        users.save(new User("advisor01", "อ.ดร.วิชัย สอนดี", "advisor01@tu.ac.th", Role.ADVISOR));
-        User a = users.save(new User("6609650001", "สมชาย ใจดี", "somchai@dome.tu.ac.th", Role.STUDENT));
-        User b = users.save(new User("6609650002", "สมหญิง รักเรียน", "somying@dome.tu.ac.th", Role.STUDENT));
+        User staff = users.save(new User("staff01", "S staff", "staff01@tu.ac.th", Role.STAFF));
+        users.save(new User("advisor01", "A advisor", "advisor01@tu.ac.th", Role.ADVISOR));
+        User a = users.save(new User("6609650001", "A arizona", "arizona@dome.tu.ac.th", Role.STUDENT));
+        User b = users.save(new User("6609650002", "B berlin", "berlin@dome.tu.ac.th", Role.STUDENT));
         Student sa = students.save(new Student(a.getId(), "6609650001", "วิทยาศาสตร์และเทคโนโลยี",
                 "วิทยาการคอมพิวเตอร์", 3.10));
         Student sb = students.save(new Student(b.getId(), "6609650002", "วิทยาศาสตร์และเทคโนโลยี",
                 "วิทยาการคอมพิวเตอร์", 3.45));
 
         // U3: นักศึกษา C และ D ยังไม่มีคำร้อง ใช้ทดลองยื่นคำร้องใหม่ (login 6609650003 / 6609650004 ด้วยรหัสผ่านทดลอง)
-        User c = users.save(new User("6609650003", "สมปอง ตั้งใจ", "sompong@dome.tu.ac.th", Role.STUDENT));
+        User c = users.save(new User("6609650003", "C center", "center@dome.tu.ac.th", Role.STUDENT));
         students.save(new Student(c.getId(), "6609650003", "วิทยาศาสตร์และเทคโนโลยี", "วิทยาการคอมพิวเตอร์", 3.25));
-        User d = users.save(new User("6609650004", "สมใจ ขยันยิ่ง", "somjai@dome.tu.ac.th", Role.STUDENT));
+        User d = users.save(new User("6609650004", "D dubai", "dubai@dome.tu.ac.th", Role.STUDENT));
         students.save(new Student(d.getId(), "6609650004", "วิทยาศาสตร์และเทคโนโลยี", "วิทยาการคอมพิวเตอร์", 2.95));
+
+        // U2 → U3: ต้องผ่านการตรวจสอบคุณสมบัติก่อนจึงยื่นคำร้องได้ (RequestService.requireEligible)
+        // A–D ผ่านแล้ว (สคริปต์ tools/u3-t17/t19/t20 ใช้ยื่นคำร้องทั้ง 4 บัญชี)
+        LocalDateTime checkedAt = LocalDateTime.now().minusDays(3);
+        for (String sid : List.of("6609650001", "6609650002", "6609650003", "6609650004")) {
+            eligibility.save(new EligibilityRecord(sid, true, "ผ่านคุณสมบัติ", checkedAt));
+        }
+        // นักศึกษา E ยังไม่เคยตรวจ U2 ใช้ demo กรณียื่นคำร้องแล้วถูกบล็อก 403 NOT_ELIGIBLE
+        User e = users.save(new User("6609650005", "E essen", "essen@dome.tu.ac.th", Role.STUDENT));
+        students.save(new Student(e.getId(), "6609650005", "วิทยาศาสตร์และเทคโนโลยี", "วิทยาการคอมพิวเตอร์", 3.00));
+
         FormTemplate form = new FormTemplate("คำร้องขอฝึกสหกิจศึกษา 2/2569", 1, staff.getId());
         form.setDescription("กรอกข้อมูลให้ครบและแนบ Transcript (PDF)");
         form.setDeadline(LocalDateTime.now().plusDays(30).withHour(23).withMinute(59).withSecond(59).withNano(0));
@@ -94,9 +111,9 @@ public class DemoDataSeeder implements CommandLineRunner {
         form.publish(LocalDateTime.now());
         templates.save(form);
 
-        seedApplication(sa, form, formFields, "สมชาย ใจดี", "0812345678", "somchai@dome.tu.ac.th",
+        seedApplication(sa, form, formFields, "A arizona", "0812345678", "arizona@dome.tu.ac.th",
                 "99 ม.ธรรมศาสตร์ ศูนย์รังสิต", LocalDateTime.now().minusDays(2));
-        seedApplication(sb, form, formFields, "สมหญิง รักเรียน", "0898765432", "somying@dome.tu.ac.th",
+        seedApplication(sb, form, formFields, "B berlin", "0898765432", "berlin@dome.tu.ac.th",
                 "1 ถ.พหลโยธิน ปทุมธานี", LocalDateTime.now().minusDays(1));
     }
 

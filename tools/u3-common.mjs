@@ -19,13 +19,14 @@ export const START_CMD = process.env.U3_START_CMD || 'docker compose start app';
 /* บัญชีทดลองจาก DemoDataSeeder (ฐานข้อมูลใหม่) */
 export const ACC = {
    staff: { username: 'staff01', id: 1 },
-   s1: { username: '6609650001', id: 3 },   // สมชาย ใจดี   · seed: มีคำร้อง SUBMITTED
-   s2: { username: '6609650002', id: 4 },   // สมหญิง รักเรียน · seed: มีคำร้อง SUBMITTED
-   s3: { username: '6609650003', id: 5 },   // สมปอง ตั้งใจ  · seed: ยังไม่มีคำร้อง
-   s4: { username: '6609650004', id: 6 }    // สมใจ ขยันยิ่ง · seed: ยังไม่มีคำร้อง
+   s1: { username: '6609650001', id: 3 },   // A arizona   · seed: มีคำร้อง SUBMITTED
+   s2: { username: '6609650002', id: 4 },   // B berlin · seed: มีคำร้อง SUBMITTED
+   s3: { username: '6609650003', id: 5 },   // C center  · seed: ยังไม่มีคำร้อง
+   s4: { username: '6609650004', id: 6 },   // D dubai · seed: ยังไม่มีคำร้อง
+   s5: { username: '6609650005', id: 7 }    // E essen · seed: ยังไม่ผ่าน U2 → ยื่นได้ 403 NOT_ELIGIBLE
 };
 
-export const ANSWERS = { s_name: 'สมชาย ใจดี', s_tel: '0812345678', s_mail: 'somchai@dome.tu.ac.th', s_addr: '99 ม.ธ. รังสิต' };
+export const ANSWERS = { s_name: 'A arizona', s_tel: '0812345678', s_mail: 'arizona@dome.tu.ac.th', s_addr: '99 ม.ธ. รังสิต' };
 export const PDF = Buffer.from('%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\n% U3 transcript (test)\n%%EOF\n');
 
 export const sleep = ms => new Promise(r => setTimeout(r, ms));
