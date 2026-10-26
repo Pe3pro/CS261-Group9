@@ -804,13 +804,28 @@ function initCheck() {
       );
 
       try {
+         const auth = JSON.parse(
+            sessionStorage.getItem('u1-auth') || 'null'
+         );
+
+         if (
+            !auth ||
+            auth.role !== 'STUDENT' ||
+            auth.userId == null
+         ) {
+            throw new Error(
+               'ไม่พบข้อมูลผู้ใช้ที่เข้าสู่ระบบ'
+            );
+         }
+
          const response = await fetch(
             ELIGIBILITY_API,
             {
                method: 'POST',
 
                headers: {
-                  'Content-Type': 'application/json'
+                  'Content-Type': 'application/json',
+                  'X-User-Id': String(auth.userId)
                },
 
                body: JSON.stringify(
